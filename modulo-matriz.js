@@ -1096,7 +1096,7 @@ export function desplegarMatrizExcelFinal(superContenedor) {
         
         bloqueFacu.innerHTML = `
             <h3 style="margin: 0 0 15px 0; color: #3b82f6; font-size: 16px; text-transform: uppercase; letter-spacing: 0.5px;">
-                ⚙️ MATRIZ DE CAUSA Y EFECTO - FACU #0${f}
+                MATRIZ DE CAUSA Y EFECTO - FACU #0${f}
             </h3>
             
             <div style="width: 100%; overflow-x: auto; border: 1px solid #3f3f46; border-radius: 6px;">
