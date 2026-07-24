@@ -980,11 +980,11 @@ export function desplegarMatrizExcelFinal(superContenedor) {
     superContenedor.innerHTML = `
         <div style="width: 100%; max-width: 1700px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
             <div>
-                <h2 style="margin:0; font-size:22px; color:#fff;">📊 Matrices de Causa y Efecto por Panel</h2>
+                <h2 style="margin:0; font-size:22px; color:#fff;">Matrices de Causa y Efecto por Panel</h2>
                 <p style="margin: 5px 0 0 0; font-size: 13px; color: #a1a1aa;">Haz <strong>anticlic (clic derecho)</strong> sobre una fila o columna para eliminarla. Haz clic en los textos (filas y columnas) para editarlos.</p>
             </div>
             <div style="display: flex; gap: 12px; align-items: center;">
-                <button id="btn-comentario" style="background: #d97706; color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size:14px; transition: background 0.2s;"><i class="fas fa-comment-alt"></i> 💬 Comentario</button>
+                <button id="btn-comentario" style="background: #d97706; color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size:14px; transition: background 0.2s;"><i class="fas fa-comment-alt"></i>Comentario</button>
                 <button id="btn-regresar-config" style="background: #4b5563; color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size:14px; transition: background 0.2s;"><i class="fas fa-arrow-left"></i> Volver a Configuración</button>
                 <button id="btn-exportar-excel-all" style="background: #10b981; color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size:14px;"><i class="fas fa-file-excel"></i> Descargar Excel (.xls)</button>
                 <button id="btn-cerrar-final" style="background: #2563eb; color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size:14px;">✓ Guardar Todo y Regresar</button>
@@ -996,13 +996,13 @@ export function desplegarMatrizExcelFinal(superContenedor) {
         <button id="col-insert-btn-floating" style="position: absolute; display: none; background: #065f46; color: white; border: none; width: 22px; height: 22px; border-radius: 50%; font-size: 14px; font-weight: bold; cursor: pointer; z-index: 100000; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.5); padding:0;">+</button>
 
         <div id="custom-context-menu" style="display: none; position: absolute; background: #1f1f23; border: 1px solid #3f3f46; border-radius: 6px; z-index: 100001; box-shadow: 0 4px 12px rgba(0,0,0,0.5); padding: 5px 0; width: 140px;">
-            <div id="ctx-delete-item" style="padding: 8px 12px; color: #ef4444; font-size: 13px; font-weight: bold; cursor: pointer; transition: background 0.2s;">🗑 Eliminar</div>
+            <div id="ctx-delete-item" style="padding: 8px 12px; color: #ef4444; font-size: 13px; font-weight: bold; cursor: pointer; transition: background 0.2s;">Eliminar</div>
         </div>
 
         <!-- MODAL DE FEEDBACK DE LA WEB -->
         <div id="modal-comentario" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 100002; align-items: center; justify-content: center; padding: 20px;">
             <div style="background: #1f2937; border: 1px solid #374151; border-radius: 12px; width: 100%; max-width: 500px; padding: 24px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
-                <h3 style="margin: 0 0 8px 0; color: #f9fafb; font-size: 18px; font-weight: bold;">💬 Feedback y Sugerencias de la Web</h3>
+                <h3 style="margin: 0 0 8px 0; color: #f9fafb; font-size: 18px; font-weight: bold;">Feedback y Sugerencias de la Web</h3>
                 <p style="margin: 0 0 16px 0; color: #9ca3af; font-size: 13px;">Escribe tus comentarios, sugerencias o fallos encontrados para mejorar la aplicación.</p>
                 
                 <textarea id="txt-comentario" style="width: 100%; height: 120px; background: #111827; border: 1px solid #4b5563; border-radius: 8px; padding: 12px; color: #fff; font-family: inherit; font-size: 14px; resize: vertical; box-sizing: border-box; outline: none;" placeholder="¿Qué te pareció la herramienta? ¿Encontraste algún error o mejora?"></textarea>
