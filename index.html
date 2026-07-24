@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asistente de Ingeniería</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+</head>
+<body>
+
+    <div class="chat-container">
+        <div id="welcome-screen" class="welcome-screen">
+            <div class="bot-container">
+                <img src="bot-original.png" alt="Botsito Matriz" id="bot-avatar" class="bot-img">
+            </div>
+            <h1 id="welcome-title"></h1>
+            <p id="welcome-p"></p>
+            
+            <div id="welcome-options" class="welcome-options hidden">
+                <button class="option-card" data-module="matriz">
+                    <i class="fas fa-table"></i>
+                    <span>Matriz Causa Efecto</span>
+                </button>
+                <button class="option-card" data-module="baterias">
+                    <i class="fas fa-battery-full"></i>
+                    <span>Cálculo de Baterías</span>
+                </button>
+                <button class="option-card" data-module="caida_tension">
+                    <i class="fas fa-bolt"></i>
+                    <span>Cálculo de Caída de Voltaje</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="chat-box" class="chat-box hidden"></div>
+
+        <div class="input-area">
+            <div class="input-wrapper">
+                <textarea id="user-input" placeholder="Escribe un mensaje aquí..." rows="1"></textarea>
+                <div class="action-buttons">
+                    <button id="mic-btn" title="Escuchar"><i class="fas fa-microphone"></i></button>
+                    <button id="send-btn" title="Enviar"><i class="fas fa-paper-plane"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script type="module" src="script.js"></script>
+</body>
+</html>
