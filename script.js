@@ -1,8 +1,12 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+import { flujoMatriz } from './n-proy-matriz.js';
+import { flujoBateria } from './n-proy-bateria.js';
+import { flujoVoltaje } from './n-proy-voltaje.js';
+import { setBotState, typeWelcomeMessage, renderBotResponse } from './bot-ui.js';
+
 
 const SUPABASE_URL = "https://hesgsgvzgfdagityctdk.supabase.co";
 const SUPABASE_KEY = "sb_publishable_fYCASIho-yAC7XIXtF7YvA_y4TtnEfW";
-
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 function getSupabaseClient() {
@@ -16,13 +20,11 @@ const chatBox = document.getElementById('chat-box');
 const welcomeScreen = document.getElementById('welcome-screen');
 const botAvatar = document.getElementById('bot-avatar');
 
-let mouthInterval = null; 
 let silenceTimeout = null; 
-let currentModule = ""; 
-let pasoMatriz = ""; 
-let totalFacus = 1;
-let totalZonas = 1;
-let instanciaCalculo = null;
+
+// Estado conversacional global para flujos de módulos ('matriz' | 'voltaje' | 'baterias' | null)
+let moduloActivoNuevoProy = null;
+
 let clienteActual = "";
 let proyectoEnEdicionId = null; 
 
@@ -43,54 +45,123 @@ if (userInput) {
     });
 }
 
-function setBotState(state, targetImg = botAvatar, isChat = false) {
-    if (mouthInterval) { clearInterval(mouthInterval); mouthInterval = null; }
-    if (state === 'idle') {
-        targetImg.src = isChat ? 'bot-open-original-chat.png' : 'bot-original.png';
-    } else if (state === 'thinking') {
-        targetImg.src = isChat ? 'bot-thinking-chat.png' : 'bot-thinking.png';
-    } else if (state === 'talking') {
-        let toggle = true;
-        mouthInterval = setInterval(() => {
-            targetImg.src = isChat 
-                ? (toggle ? 'bot-open-A-chat.png' : 'bot-open-B-chat.png')
-                : (toggle ? 'bot-open-A.png' : 'bot-open-B.png');
-            toggle = !toggle;
-        }, 220); 
-    }
-}
-
-function typeWelcomeMessage() {
-    const text = "HOLA, soy DYAbot.";
-    if (welcomeScreen && welcomeScreen.classList.contains('hidden')) return; 
-
-    const h1 = document.createElement('h1');
-    h1.className = 'welcome-title-gradient'; 
-    welcomeScreen.appendChild(h1);
-
-    let index = 0;
-    setBotState('talking', botAvatar, false);
-
-    function type() {
-        if (index < text.length) {
-            h1.innerHTML += text.charAt(index);
-            index++;
-            setTimeout(type, 40); 
-        } else {
-            setBotState('idle', botAvatar, false);
-            const sub = document.createElement('p');
-            sub.className = 'welcome-subtitle';
-            sub.style.fontSize = "16px";
-            sub.innerText = "Para comenzar, escribe tu nombre y apellido o el nombre del cliente del proyecto:";
-            welcomeScreen.appendChild(sub);
-        }
-    }
-    type();
-}
-
+// Inicialización de la pantalla de bienvenida usando bot-ui.js
 window.addEventListener('load', () => { 
-    typeWelcomeMessage(); 
+    if (welcomeScreen && !welcomeScreen.classList.contains('hidden') && botAvatar) {
+        typeWelcomeMessage(botAvatar, () => {
+            // Callback opcional al finalizar el tipeo de bienvenida
+        });
+    }
 });
+
+// Helper para generar botoneras generales
+function generarOpcionesChat(opciones) {
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = "display: flex; flex-direction: column; gap: 8px; margin-top: 10px; width: 100%;";
+    opciones.forEach(opc => {
+        const btn = document.createElement('button');
+        btn.style.cssText = "background: #222227; color: #e4e4e7; border: 1px solid #3f3f46; padding: 10px 12px; text-align: left; border-radius: 6px; cursor: pointer; font-size: 13px; width: 100%; transition: background 0.2s;";
+        btn.innerHTML = `<strong>${opc.texto}</strong>${opc.subtexto ? `<br><span style="color: #a1a1aa; font-size: 11px;">${opc.subtexto}</span>` : ''}`;
+        btn.addEventListener('mouseenter', () => btn.style.background = '#2d2d34');
+        btn.addEventListener('mouseleave', () => btn.style.background = '#222227');
+        btn.addEventListener('click', () => sendMessage(opc.valor));
+        wrapper.appendChild(btn);
+    });
+    return wrapper;
+}
+
+// Helper para botones horizontales de "Nueva tarea"
+function crearBotoneraNuevasTareas() {
+    const contenedorAccionesNuevas = document.createElement('div');
+    contenedorAccionesNuevas.style.cssText = "margin-top: 10px; padding-top: 8px; border-top: 1px solid #3f3f46; display: flex; flex-direction: column; gap: 6px;";
+
+    const labelNuevos = document.createElement('span');
+    labelNuevos.style.cssText = "font-size: 11px; color: #a1a1aa;";
+    labelNuevos.innerText = "Puedes crear una nueva tarea desde cero:";
+    contenedorAccionesNuevas.appendChild(labelNuevos);
+
+    const filaBotones = document.createElement('div');
+    filaBotones.style.cssText = "display: flex; gap: 6px; flex-wrap: wrap;";
+
+    const btnNuevoMatriz = document.createElement('button');
+    btnNuevoMatriz.style.cssText = "background: #2563eb; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 11px; transition: background 0.2s;";
+    btnNuevoMatriz.innerText = "Matriz Causa/Efecto";
+    btnNuevoMatriz.addEventListener('click', (e) => {
+        e.stopPropagation();
+        iniciarNuevoProyecto("matriz");
+    });
+
+    const btnNuevoVoltaje = document.createElement('button');
+    btnNuevoVoltaje.style.cssText = "background: #0284c7; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 11px; transition: background 0.2s;";
+    btnNuevoVoltaje.innerText = "Caída de Voltaje";
+    btnNuevoVoltaje.addEventListener('click', (e) => {
+        e.stopPropagation();
+        iniciarNuevoProyecto("voltaje");
+    });
+
+    const btnNuevoBaterias = document.createElement('button');
+    btnNuevoBaterias.style.cssText = "background: #d97706; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 11px; transition: background 0.2s;";
+    btnNuevoBaterias.innerText = "Cálculo de Baterías";
+    btnNuevoBaterias.addEventListener('click', (e) => {
+        e.stopPropagation();
+        iniciarNuevoProyecto("baterias");
+    });
+
+    filaBotones.appendChild(btnNuevoMatriz);
+    filaBotones.appendChild(btnNuevoVoltaje);
+    filaBotones.appendChild(btnNuevoBaterias);
+
+    contenedorAccionesNuevas.appendChild(filaBotones);
+    return contenedorAccionesNuevas;
+}
+
+// Envía y delega el renderizado a bot-ui.js
+function publicarRespuestaBot(botReply, opciones = null, miniAvatar, msgDiv, customElementHTML = null) {
+    let elementoInteractivo = null;
+
+    if (opciones && opciones.length > 0) {
+        elementoInteractivo = generarOpcionesChat(opciones);
+    } else if (customElementHTML) {
+        elementoInteractivo = customElementHTML;
+    }
+
+    renderBotResponse(msgDiv, botReply, miniAvatar, chatBox, elementoInteractivo);
+}
+
+// Inicialización de flujos con los módulos importados al inicio
+function iniciarNuevoProyecto(tipoModulo) {
+    if (welcomeScreen && !welcomeScreen.classList.contains('hidden')) {
+        welcomeScreen.classList.add('hidden');
+        chatBox.classList.remove('hidden');
+    }
+
+    moduloActivoNuevoProy = tipoModulo;
+    let inicioData = null;
+
+    if (tipoModulo === "matriz") {
+        inicioData = flujoMatriz.iniciar();
+    } else if (tipoModulo === "voltaje") {
+        inicioData = flujoVoltaje.iniciar();
+    } else if (tipoModulo === "baterias") {
+        inicioData = flujoBateria.iniciar();
+    }
+
+    if (inicioData) {
+        const container = document.createElement('div');
+        container.classList.add('bot-msg-container');
+        const miniAvatar = document.createElement('img');
+        miniAvatar.src = 'bot-thinking-chat.png'; 
+        miniAvatar.className = 'bot-chat-img';
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'bot-message';
+        
+        container.appendChild(miniAvatar);
+        container.appendChild(msgDiv);
+        chatBox.appendChild(container);
+
+        publicarRespuestaBot(inicioData.texto, inicioData.opciones, miniAvatar, msgDiv);
+    }
+}
 
 async function sendMessage(text) {
     if (!text || !text.trim()) return;
@@ -120,225 +191,218 @@ async function sendMessage(text) {
     setBotState('thinking', miniAvatar, true); 
 
     setTimeout(async () => {
+        let cleanText = text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+
+        // 1. EVALUAR FLUJOS DE PREGUNTAS ACTIVOS
+        if (moduloActivoNuevoProy === "matriz") {
+            const contextoChat = { msgDiv, miniAvatar, chatBox, setBotState };
+            const resp = await flujoMatriz.procesarRespuesta(text, contextoChat);
+            publicarRespuestaBot(resp.texto, resp.opciones, miniAvatar, msgDiv);
+            if (resp.moduloCompletado) moduloActivoNuevoProy = null;
+            return;
+        }
+
+        if (moduloActivoNuevoProy === "voltaje") {
+            const resp = await flujoVoltaje.procesarRespuesta(text);
+            publicarRespuestaBot(resp.texto, resp.opciones, miniAvatar, msgDiv);
+            if (resp.moduloCompletado) moduloActivoNuevoProy = null;
+            return;
+        }
+
+        if (moduloActivoNuevoProy === "baterias") {
+            const resp = await flujoBateria.procesarRespuesta(text);
+            publicarRespuestaBot(resp.texto, resp.opciones, miniAvatar, msgDiv);
+            if (resp.moduloCompletado) moduloActivoNuevoProy = null;
+            return;
+        }
+
+        // 2. RECONOCER INTENCIONES POR COMANDO O TEXTO DIRECTO
+        const pideMatriz = cleanText.includes('causa') || cleanText.includes('efecto') || cleanText.includes('matriz');
+        const pideBaterias = cleanText.includes('bateria') || cleanText.includes('baterias');
+        const pideVoltaje = cleanText.includes('caida') || cleanText.includes('voltaje') || cleanText.includes('tension');
+
+        if (pideMatriz) {
+            container.remove();
+            iniciarNuevoProyecto("matriz");
+            return;
+        } 
+        if (pideBaterias) {
+            container.remove();
+            iniciarNuevoProyecto("baterias");
+            return;
+        } 
+        if (pideVoltaje) {
+            container.remove();
+            iniciarNuevoProyecto("voltaje");
+            return;
+        }
+
+        // 3. BÚSQUEDA Y CONSULTAS EN SUPABASE
         let botReply = "";
-        let cleanText = text.toLowerCase().trim();
         let customElementHTML = null;
 
-        let numeroDetectado = text.match(/\d+/);
-        let valorNumerico = numeroDetectado ? parseInt(numeroDetectado[0]) : 1;
+        try {
+            const client = getSupabaseClient();
+            let { data: proyectos, error } = await client
+                .from('proyectos')
+                .select('*')
+                .ilike('cliente', `%${text.trim()}%`); 
 
-        if (currentModule === "" && !cleanText.includes('causa') && !cleanText.includes('matriz') && !cleanText.includes('bateria') && !cleanText.includes('caida')) {
-            try {
-                const client = getSupabaseClient();
+            if (error) throw error;
+            clienteActual = text; 
 
-                let { data: proyectos, error } = await client
-                    .from('proyectos')
-                    .select('*')
-                    .ilike('cliente', cleanText); 
+            if (proyectos && proyectos.length > 0) {
+                botReply = `He encontrado los siguientes registros asociados a "${text}" en la nube. Haz clic sobre uno para abrirlo:`;
+                
+                customElementHTML = document.createElement('div');
+                customElementHTML.style.cssText = "display: flex; flex-direction: column; gap: 8px; margin-top: 10px; width: 100%;";
 
-                if (error) throw error;
+                proyectos.forEach(proy => {
+                    const btnProy = document.createElement('button');
+                    btnProy.style.cssText = "background: #222227; color: #e4e4e7; border: 1px solid #3f3f46; padding: 10px; text-align: left; border-radius: 6px; cursor: pointer; font-size: 13px; width: 100%; transition: background 0.2s;";
+                    btnProy.innerHTML = `<strong>${proy.nombre_proyecto}</strong>`;
+                    btnProy.addEventListener('mouseenter', () => btnProy.style.background = '#2d2d34');
+                    btnProy.addEventListener('mouseleave', () => btnProy.style.background = '#222227');
+                    btnProy.addEventListener('click', () => desplegarOpcionesProyecto(btnProy, proy));
+                    customElementHTML.appendChild(btnProy);
+                });
 
-                clienteActual = text; 
-
-                if (proyectos && proyectos.length > 0) {
-                    botReply = `He encontrado los siguientes registros asociados a "${text}" en la nube. Haz clic sobre uno para ver sus opciones:`;
-                    
-                    customElementHTML = document.createElement('div');
-                    customElementHTML.style.cssText = "display: flex; flex-direction: column; gap: 8px; margin-top: 10px; width: 100%;";
-                    
-                    proyectos.forEach(proy => {
-                        const btnProy = document.createElement('button');
-                        btnProy.style.cssText = "background: #222227; color: #e4e4e7; border: 1px solid #3f3f46; padding: 10px; text-align: left; border-radius: 6px; cursor: pointer; font-size: 13px; width: 100%; transition: background 0.2s; position: relative;";
-                        btnProy.innerHTML = `📁 <strong>${proy.nombre_proyecto}</strong> <span style="font-size:11px; color:#a1a1aa; float:right;"></span>`;
-                        
-                        btnProy.addEventListener('mouseenter', () => btnProy.style.background = '#2d2d34');
-                        btnProy.addEventListener('mouseleave', () => btnProy.style.background = '#222227');
-                        
-                        btnProy.addEventListener('click', () => {
-                            desplegarOpcionesProyecto(btnProy, proy);
-                        });
-                        customElementHTML.appendChild(btnProy);
-                    });
-                } else {
-                    botReply = `No localicé proyectos existentes para "${text}". ¿Deseas iniciar una tarea desde cero? Puedes indicarme:\n\n Matriz Causa Efecto,\n Cálculo de Baterías,\n Caída de Voltaje`;
-                }
-            } catch (err) {
-                console.error("Error detallado:", err);
-                botReply = `Hubo un inconveniente con Supabase. Detalle: ${err.message || err}`;
+            } else {
+                botReply = `No localicé proyectos existentes para "${text}".`;
+                customElementHTML = crearBotoneraNuevasTareas();
             }
+        } catch (err) {
+            console.error("Error detallado:", err);
+            botReply = `Hubo un inconveniente con Supabase. Detalle: ${err.message || err}`;
         }
 
-        else if (currentModule === "") {
-            if (cleanText.includes('causa') || cleanText.includes('efecto') || cleanText.includes('matriz')) {
-                currentModule = "matriz";
-                pasoMatriz = "PREGUNTA_FACUS";
-                botReply = "¡Excelente! Configuremos la infraestructura base en la nube. ¿Cuántos FACUs (Paneles de Control) tiene tu proyecto?";
-            } else if (cleanText.includes('batería') || cleanText.includes('baterias')) {
-                currentModule = "baterias";
-                const { iniciarModuloBaterias } = await import('./modulo-baterias.js');
-                instanciaCalculo = iniciarModuloBaterias();
-                botReply = "Módulo de Baterías activo. Ingresa la corriente en reposo (Standby) en Amperios (A):";
-            } else if (cleanText.includes('caida') || cleanText.includes('voltaje') || cleanText.includes('tension')) {
-                currentModule = "caida_tension";
-                const { iniciarModuloVoltaje } = await import('./modulo-voltaje.js');
-                instanciaCalculo = iniciarModuloVoltaje();
-                botReply = "Módulo de Caída de Tensión activo. Ingresa el voltaje nominal de salida (Ej: 24):";
-            } else {
-                botReply = "Por ahora, puedo ayudarte con: Matriz causa efecto, Cálculo de baterías, o Caída de voltaje. ¿Cuál deseas iniciar?";
-            }
-        } else {
-            if (currentModule === "matriz") {
-                if (pasoMatriz === "PREGUNTA_FACUS") {
-                    totalFacus = valorNumerico;
-                    pasoMatriz = "PREGUNTA_ZONAS";
-                    botReply = `Entendido, se configurarán ${totalFacus} FACU(s) independientes.\n\nAhora, ¿cuántas Zonas de Alarma totales tiene todo el sistema/proyecto?`;
-                } 
-                else if (pasoMatriz === "PREGUNTA_ZONAS") {
-                    totalZonas = valorNumerico; 
-                    pasoMatriz = "BOTONERA_INTERACTIVA";
-                    
-                    const { iniciarModuloMatriz } = await import('./modulo-matriz.js');
-                    
-                    iniciarModuloMatriz(msgDiv, miniAvatar, chatBox, totalZonas, totalFacus, () => {
-                        currentModule = ""; 
-                        pasoMatriz = "";
-                    });
-                    
-                    interceptarBotonFinalizarSupabase();
-                    
-                    setBotState('idle', miniAvatar, true);
-                    return;
-                }
-            } 
-            else if (instanciaCalculo) {
-                botReply = instanciaCalculo.procesarRespuesta(text);
-                if (instanciaCalculo.step === 0) { currentModule = ""; instanciaCalculo = null; }
-            }
-        }
+        publicarRespuestaBot(botReply, null, miniAvatar, msgDiv, customElementHTML);
 
-        setBotState('talking', miniAvatar, true);
-        const words = botReply.split(" ");
-        let wordIndex = 0;
-
-        const typingInterval = setInterval(() => {
-            if (wordIndex < words.length) {
-                msgDiv.innerHTML += (wordIndex === 0 ? "" : " ") + words[wordIndex];
-                wordIndex++;
-                chatBox.scrollTop = chatBox.scrollHeight;
-            } else {
-                clearInterval(typingInterval);
-                setBotState('idle', miniAvatar, true); 
-                if (customElementHTML) {
-                    msgDiv.appendChild(customElementHTML);
-                    chatBox.scrollTop = chatBox.scrollHeight;
-                }
-            }
-        }, 120);
-
-        chatBox.scrollTop = chatBox.scrollHeight;
     }, 600);
 }
 
 function desplegarOpcionesProyecto(botonPadre, proyectoRow) {
     const contenedorExistente = botonPadre.querySelector('.panel-opciones-proyecto');
-    if (contenedorExistente) { contenedorExistente.remove(); return; }
+    if (contenedorExistente) { 
+        contenedorExistente.remove(); 
+        return; 
+    }
 
     const panelOpciones = document.createElement('div');
     panelOpciones.className = 'panel-opciones-proyecto';
-    panelOpciones.style.cssText = "display: flex; gap: 10px; margin-top: 8px; padding-left: 15px; border-left: 2px solid #2563eb;";
+    panelOpciones.style.cssText = "display: flex; flex-direction: column; gap: 10px; margin-top: 8px; padding-left: 10px; border-left: 2px solid #2563eb;";
 
     const btnEditar = document.createElement('button');
-    btnEditar.style.cssText = "background: #16a34a; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 12px;";
-    btnEditar.innerText = "✏️ Editar Proyecto";
+    btnEditar.style.cssText = "background: #16a34a; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 12px; width: fit-content;";
+    btnEditar.innerText = "Editar Proyecto";
+    
     btnEditar.addEventListener('click', async (e) => {
         e.stopPropagation();
         
         proyectoEnEdicionId = proyectoRow.id; 
         clienteActual = proyectoRow.cliente;
         
-        currentModule = "matriz";
-        pasoMatriz = "BOTONERA_INTERACTIVA";
+        const tipoProyecto = (proyectoRow.tipo || 'matriz').toLowerCase();
         
         appendUserMessage(`Cargando proyecto para editar: ${proyectoRow.nombre_proyecto}`);
-        
-        const moduloMatriz = await import('./modulo-matriz.js');
-        
-        let totalFacusDetectados = Object.keys(proyectoRow.datos).length || 1;
-        let totalZonasDetectadas = window.totalZonasGlobalesSistema || 5; 
 
-        moduloMatriz.iniciarModuloMatriz(
-            document.createElement('div'), 
-            document.createElement('img'), 
-            chatBox, 
-            totalZonasDetectadas, 
-            totalFacusDetectados, 
-            () => {}
-        );
+        if (tipoProyecto === 'voltaje' || tipoProyecto === 'caida_voltaje' || tipoProyecto === 'caida_tension') {
+            const { moduloVoltaje } = await import('./modulo-voltaje.js');
+            const datosGuardados = proyectoRow.datos || {};
+            
+            const estadoProyecto = datosGuardados.estadoActual || {
+                fuentes: datosGuardados.fuentes || [
+                    {
+                        nombreFuente: "FUENTE NAC #01",
+                        marca: "Notifier UL",
+                        modelo: "ACPS-610 CLASS B",
+                        voltajeNominal: 20.4,
+                        clase: "B",
+                        circuitos: [
+                            {
+                                nombreCircuito: "NAC Circuit1",
+                                calibreAWG: "14",
+                                dispositivos: []
+                            }
+                        ]
+                    }
+                ]
+            };
 
-        setTimeout(() => {
-            moduloMatriz.cargarDatosGuardados(proyectoRow.datos);
-            interceptarBotonFinalizarSupabase();
-        }, 150);
-    });
+            if (typeof moduloVoltaje.cargarEstadoCompleto === 'function') {
+                moduloVoltaje.cargarEstadoCompleto(estadoProyecto);
+            }
 
-    const btnNuevo = document.createElement('button');
-    btnNuevo.style.cssText = "background: #2563eb; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 12px;";
-    btnNuevo.innerText = "✨ Iniciar uno Nuevo";
-    btnNuevo.addEventListener('click', async (e) => {
-        e.stopPropagation();
+            moduloVoltaje.abrirModalVoltaje(
+                estadoProyecto, 
+                (datosFormulario) => moduloVoltaje.procesarDatosModal(datosFormulario)
+            );
+        } else {
+            const moduloMatriz = await import('./modulo-matriz.js');
+            let totalFacusDetectados = Object.keys(proyectoRow.datos || {}).length || 1;
+            let totalZonasDetectadas = window.totalZonasGlobalesSistema || 5; 
 
-        proyectoEnEdicionId = null; 
-        clienteActual = proyectoRow.cliente;
-        
-        currentModule = "matriz";
-        pasoMatriz = "PREGUNTA_FACUS";
-        
-        appendUserMessage(`Iniciando nueva matriz causa/efecto para el cliente: ${clienteActual}`);
-        sendMessage("Matriz Causa Efecto");
-    });
+            moduloMatriz.iniciarModuloMatriz(
+                document.createElement('div'), 
+                document.createElement('img'), 
+                chatBox, 
+                totalZonasDetectadas, 
+                totalFacusDetectados, 
+                () => {}
+            );
+
+            setTimeout(() => {
+                moduloMatriz.cargarDatosGuardados(proyectoRow.datos);
+            }, 150);
+        }
+    }); // <-- Aquí cierra correctamente la función del eventListener
 
     panelOpciones.appendChild(btnEditar);
-    panelOpciones.appendChild(btnNuevo);
+    
+    if (typeof crearBotoneraNuevasTareas === 'function') {
+        panelOpciones.appendChild(crearBotoneraNuevasTareas());
+    }
+
     botonPadre.appendChild(panelOpciones);
 }
 
-function interceptarBotonFinalizarSupabase() {
-}
-
 window.addEventListener('guardarProyectoSupabaseEvent', async (event) => {
-    const { datos } = event.detail;
+    const { datos, tipo } = event.detail;
 
     let nombreFinalProyecto = prompt(
         "Asigna un nombre a este proyecto:", 
-        proyectoEnEdicionId ? "Matriz Causa Efecto (Copia)" : "Matriz Causa Efecto General"
+        proyectoEnEdicionId ? "" : ""
     );
     
     if (!nombreFinalProyecto) return;
 
     let cName = clienteActual || "Cliente Anonimo";
+    let tipoModuloGuardar = tipo || moduloActivoNuevoProy || 'matriz';
+
+    if (tipoModuloGuardar === 'caida_tension' || tipoModuloGuardar === 'caida_voltaje') {
+        tipoModuloGuardar = 'voltaje';
+    }
 
     try {
         const client = getSupabaseClient();
-
         const { error } = await client
             .from('proyectos')
             .insert([{ 
                 cliente: cName.toLowerCase().trim(), 
                 nombre_proyecto: nombreFinalProyecto, 
+                tipo: tipoModuloGuardar,
                 datos: datos 
             }]);
 
         if (error) throw error;
-        
-        alert("☁️ Proyecto guardado exitosamente.");
+        alert("Proyecto guardado exitosamente.");
 
     } catch (err) {
         console.error("Error persistiendo datos:", err);
         alert(`No se pudo guardar en la nube: ${err.message || err}`);
     } finally {
         proyectoEnEdicionId = null; 
-        currentModule = "";
-        pasoMatriz = "";
+        moduloActivoNuevoProy = null;
     }
 });
 
@@ -359,7 +423,6 @@ window.addEventListener('guardarComentarioSupabaseEvent', async (event) => {
 
     } catch (err) {
         console.error("Error al guardar comentario:", err);
-        
         window.dispatchEvent(new CustomEvent('comentarioGuardadoResultado', {
             detail: { exito: false, error: err.message || err }
         }));

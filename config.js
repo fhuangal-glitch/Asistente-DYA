@@ -127,11 +127,11 @@ export const ARBOL_DISPOSITIVOS = {
     },
 
     "enclavamiento": {
-        "Modulo de contorl para apagado de equipo aire acondicionado": true,
-        "Modulo de control para encendido de equipo de presurización de escaleras": true,
-        "Modulo de control para el encendido de equipo de inyección de aire fresco": true,
-        "Modulo de control para llmada de ascensores": true,
-        "Modulo de control para desactivación de puertas de control de accesos de rutas de evacuación": true
+        "Módulo de contorl para apagado de equipo aire acondicionado": true,
+        "Módulo de control para encendido de equipo de presurización de escaleras": true,
+        "Módulo de control para el encendido de equipo de inyección de aire fresco": true,
+        "Módulo de control para llamada de ascensores": true,
+        "Módulo de control para desactivación de puertas de control de accesos de rutas de evacuación": true
     }
 };
 

@@ -137,25 +137,33 @@ export function cargarDatosGuardados(datosRecuperados) {
             console.warn("El proyecto está vacío ({}) en Supabase. Inicializando matriz por defecto...");
             const totalZonas = window.totalZonasGlobalesSistema || 3; 
             datosRecuperados = {
-                "1": {
-                    entradas: [{ causa: "", intersecciones: Array(totalZonas).fill("-") }],
-                    salidas: []
+                facus: {
+                    "1": {
+                        entradas: [{ causa: "", intersecciones: Array(totalZonas).fill("-") }],
+                        salidas: []
+                    }
                 }
             };
         }
 
-        entradasPorFacu = {};
-        
-        if (datosRecuperados.salidasPorFacu) {
-            salidasPorFacu = datosRecuperados.salidasPorFacu;
-            datosRecuperados = datosRecuperados.entradasPorFacu || datosRecuperados;
+        if (datosRecuperados.totalZonas) {
+            window.totalZonasGlobalesSistema = datosRecuperados.totalZonas;
         }
 
-        const keys = Object.keys(datosRecuperados).filter(k => k !== "salidasPorFacu");
+        let facusData = datosRecuperados.facus || datosRecuperados;
+
+        entradasPorFacu = {};
+        
+        if (facusData.salidasPorFacu) {
+            salidasPorFacu = facusData.salidasPorFacu;
+            facusData = facusData.entradasPorFacu || facusData;
+        }
+
+        const keys = Object.keys(facusData).filter(k => k !== "salidasPorFacu" && k !== "totalZonas" && k !== "facus");
         facusConfigurados = keys.length || 1;
 
         keys.forEach(fId => {
-            const facuData = datosRecuperados[fId];
+            const facuData = facusData[fId];
             let filas = [];
             
             if (Array.isArray(facuData)) {
@@ -984,9 +992,9 @@ export function desplegarMatrizExcelFinal(superContenedor) {
                 <p style="margin: 5px 0 0 0; font-size: 13px; color: #a1a1aa;">Haz <strong>anticlic (clic derecho)</strong> sobre una fila o columna para eliminarla. Haz clic en los textos (filas y columnas) para editarlos.</p>
             </div>
             <div style="display: flex; gap: 12px; align-items: center;">
-                <button id="btn-comentario" style="background: #d97706; color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size:14px; transition: background 0.2s;"><i class="fas fa-comment-alt"></i>Comentario</button>
+                <button id="btn-comentario" style="background: #d97706; color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size:14px; transition: background 0.2s;">Comentario</button>
                 <button id="btn-regresar-config" style="background: #4b5563; color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size:14px; transition: background 0.2s;"><i class="fas fa-arrow-left"></i> Volver a Configuración</button>
-                <button id="btn-exportar-excel-all" style="background: #10b981; color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size:14px;"><i class="fas fa-file-excel"></i> Descargar Excel (.xls)</button>
+                <button id="btn-exportar-excel-all" style="background: #10b981; color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size:14px;">Descargar Excel</button>
                 <button id="btn-cerrar-final" style="background: #2563eb; color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size:14px;">✓ Guardar Todo y Regresar</button>
             </div>
         </div>
@@ -1373,7 +1381,8 @@ export function desplegarMatrizExcelFinal(superContenedor) {
             const customEvent = new CustomEvent('guardarProyectoSupabaseEvent', {
                 detail: { 
                     datos: datosEstructurados,
-                    nombreProyecto: nuevoNombreCopia
+                    nombreProyecto: nuevoNombreCopia,
+                    tipo: 'matriz'
                 }
             });
             window.dispatchEvent(customEvent);
@@ -1423,8 +1432,6 @@ export function obtenerDatosEstructuradosDeLaPantalla() {
 
     tablas.forEach(tabla => {
         const facuId = tabla.id.replace('tabla-facu-', '');
-        
-        // 1. Extraer Nombres de Columnas / Salidas (Modificadas o Editadas)
         const thCols = tabla.querySelectorAll('.row-headers-names .col-trigger-header');
         const salidasActualizadas = [];
 
@@ -1474,9 +1481,10 @@ export function obtenerDatosEstructuradosDeLaPantalla() {
             salidas: salidasActualizadas
         };
     });
-
-    return datosParaGuardar;
-
+    return {
+        totalZonas: window.totalZonasGlobalesSistema || 5,
+        facus: datosParaGuardar
+    };
 }
 
 /**
@@ -1499,17 +1507,15 @@ async function descargarExcelConPlantillaDYA(datosMatriz, nombreProyecto = "Matr
         return;
     }
 
-    // Mapa oficial de colores ARGB
     const PALETA_COLORES = {
-        NOTIFICACION: 'FF92D050',  // Verde
-        ALARMA: 'FFFF9696',        // Rojo
-        SUPERVISION: 'FFFFC000',   // Naranja/Amarillo
-        FALLA: 'FFFFFF00',         // Amarillo brillante
-        DESPLEGAR: 'FF00B0F0',     // Azul
-        ENCLAVAMIENTO: 'FFFFCCFF'  // Rosado/Morado claro
+        NOTIFICACION: 'FF92D050',
+        ALARMA: 'FFFF9696',
+        SUPERVISION: 'FFFFC000',
+        FALLA: 'FFFFFF00',
+        DESPLEGAR: 'FF00B0F0',
+        ENCLAVAMIENTO: 'FFFFCCFF'
     };
 
-    // DEFINICIÓN DE BORDES: "Todos los bordes" (Thin / Delgado)
     const BORDES_TODOS = {
         top: { style: 'thin', color: { argb: 'FF000000' } },
         left: { style: 'thin', color: { argb: 'FF000000' } },
@@ -1526,19 +1532,16 @@ async function descargarExcelConPlantillaDYA(datosMatriz, nombreProyecto = "Matr
         const nombreHoja = `FACU #0${fKey}`;
         const worksheet = workbook.addWorksheet(nombreHoja);
 
-        // Anchos de columna
-        worksheet.getColumn(1).width = 5;  // A: Número
-        worksheet.getColumn(2).width = 75; // B: Descripción de Entradas
+        worksheet.getColumn(1).width = 5;
+        worksheet.getColumn(2).width = 75;
 
         for (let c = 0; c < totalSalidas; c++) {
-            worksheet.getColumn(3 + c).width = 5.5; // C en adelante: Salidas
+            worksheet.getColumn(3 + c).width = 5.5;
         }
 
-        // --- FILA 1: ENCABEZADO SALIDAS FACU ---
         if (totalSalidas > 0) {
             worksheet.mergeCells(1, 3, 1, 2 + totalSalidas);
             
-            // Aplicar borde a todas las celdas combinadas de la Fila 1 para evitar cortes visuales
             for (let c = 3; c <= 2 + totalSalidas; c++) {
                 const cell = worksheet.getCell(1, c);
                 cell.border = BORDES_TODOS;
@@ -1551,7 +1554,6 @@ async function descargarExcelConPlantillaDYA(datosMatriz, nombreProyecto = "Matr
             cellSalidas.alignment = { vertical: 'middle', horizontal: 'center' };
         }
 
-        // --- FILA 2: GRUPOS / MÓDULOS (Anunciación, Notificación, Enclavamiento) ---
         let colCursor = 3;
         const conteoGrupos = { anunciacion: 0, notificacion: 0, enclavamiento: 0 };
 
@@ -1576,7 +1578,6 @@ async function descargarExcelConPlantillaDYA(datosMatriz, nombreProyecto = "Matr
                     worksheet.mergeCells(2, startCol, 2, endCol);
                 }
 
-                // Asegurar bordes en todo el rango combinado del grupo
                 for (let c = startCol; c <= endCol; c++) {
                     worksheet.getCell(2, c).border = BORDES_TODOS;
                 }
@@ -1591,14 +1592,11 @@ async function descargarExcelConPlantillaDYA(datosMatriz, nombreProyecto = "Matr
             }
         });
 
-        // --- FILA 3: TEXTO ROTADO DE SALIDAS (AJUSTE DINÁMICO PERFECTO) ---
-        // 1. Encontrar la oración más larga para calcular el alto de la fila 3
         const maxCaracteres = salidas.reduce((max, s) => {
             const txt = typeof s === 'object' ? (s.nombre || "") : String(s);
             return Math.max(max, txt.length);
         }, 0);
 
-        // 2. Calcular la altura ideal según la longitud del texto
         const alturaCalculada = Math.max(120, maxCaracteres * 5.5);
         worksheet.getRow(3).height = alturaCalculada;
 
@@ -1613,7 +1611,6 @@ async function descargarExcelConPlantillaDYA(datosMatriz, nombreProyecto = "Matr
 
             cell.value = textoSalida;
 
-            // Determinación de color según reglas de señal
             let colorAsignado = PALETA_COLORES.ALARMA;
 
             if (grupo === 'enclavamiento') {
@@ -1633,7 +1630,6 @@ async function descargarExcelConPlantillaDYA(datosMatriz, nombreProyecto = "Matr
             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colorAsignado } };
             cell.font = { name: 'Arial', size: 9 };
             
-            // Alineación vertical a 90° en 1 sola línea sin margen excedente
             cell.alignment = { 
                 textRotation: 90, 
                 vertical: 'bottom', 
@@ -1644,13 +1640,12 @@ async function descargarExcelConPlantillaDYA(datosMatriz, nombreProyecto = "Matr
             cell.border = BORDES_TODOS;
         });
 
-        // --- FILA 4: ENCABEZADO ENTRADAS Y LETRAS CORRELATIVAS (A, B, C...) ---
         const cellEntradasHeader = worksheet.getCell(4, 2);
         cellEntradasHeader.value = `ENTRADAS FACU #0${fKey}`;
         cellEntradasHeader.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFCE4D6' } };
         cellEntradasHeader.font = { name: 'Arial', size: 10, bold: true };
         cellEntradasHeader.alignment = { vertical: 'middle', horizontal: 'center' };
-        cellEntradasHeader.border = BORDES_TODOS; // Borde marcado
+        cellEntradasHeader.border = BORDES_TODOS;
 
         salidas.forEach((_, index) => {
             const colIdx = 3 + index;
@@ -1667,24 +1662,21 @@ async function descargarExcelConPlantillaDYA(datosMatriz, nombreProyecto = "Matr
             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD6DCE4' } };
             cell.font = { name: 'Arial', size: 10, bold: true };
             cell.alignment = { vertical: 'middle', horizontal: 'center' };
-            cell.border = BORDES_TODOS; // Borde marcado
+            cell.border = BORDES_TODOS;
         });
 
-        // --- FILAS 5 EN ADELANTE: CAUSAS E INTERSECCIONES ---
         entradas.forEach((entrada, rIdx) => {
             const rowNum = 5 + rIdx;
             const row = worksheet.getRow(rowNum);
             row.height = 24;
 
-            // Columna A: Número correlativo
             const cellNum = worksheet.getCell(rowNum, 1);
             cellNum.value = rIdx + 1;
             cellNum.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFCE4D6' } };
             cellNum.font = { name: 'Arial', size: 9, bold: true };
             cellNum.alignment = { vertical: 'middle', horizontal: 'center' };
-            cellNum.border = BORDES_TODOS; // Borde marcado
+            cellNum.border = BORDES_TODOS;
 
-            // Columna B: Causa / Descripción
             const cellDesc = worksheet.getCell(rowNum, 2);
             let textoCausa = obtenerTextoCausa(entrada);
             textoCausa = textoCausa.replace(/^FACU\s*#?\d+\s*-\s*/i, '');
@@ -1692,9 +1684,8 @@ async function descargarExcelConPlantillaDYA(datosMatriz, nombreProyecto = "Matr
             cellDesc.value = textoCausa;
             cellDesc.font = { name: 'Arial', size: 9 };
             cellDesc.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
-            cellDesc.border = BORDES_TODOS; // Borde marcado
+            cellDesc.border = BORDES_TODOS;
 
-            // Columnas C en adelante: Intersecciones ('X' o '-')
             const arrayIntersecciones = entrada.intersecciones || [];
 
             salidas.forEach((salidaItem, cIdx) => {
@@ -1709,12 +1700,11 @@ async function descargarExcelConPlantillaDYA(datosMatriz, nombreProyecto = "Matr
                 cellVal.value = valorCruz;
                 cellVal.font = { name: 'Arial', size: 10, bold: valorCruz === "X" };
                 cellVal.alignment = { vertical: 'middle', horizontal: 'center' };
-                cellVal.border = BORDES_TODOS; // Borde marcado
+                cellVal.border = BORDES_TODOS;
             });
         });
     });
 
-    // Descarga del archivo .xlsx
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 
