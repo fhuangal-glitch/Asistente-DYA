@@ -1,4 +1,4 @@
-import { CATALOGO_DISPOSITIVOS } from './catalogos-nac.js';
+import { OPCIONES_DESPLEGABLES, CATALOGO_MATRIZ_CONSUMOS, obtenerOpcionesFiltradas, obtenerConsumoAmperios } from './catalogos-nac.js';
 import { generarExcelVoltaje } from './excel-generator.js';
 
 const RESISTENCIA_CABLE_OHM_M = {
@@ -6,14 +6,6 @@ const RESISTENCIA_CABLE_OHM_M = {
     "16": 0.013,
     "14": 0.008,
     "12": 0.005 
-};
-
-// Salvaguarda para el catálogo
-const obtenerCatalogoValido = () => {
-    if (typeof CATALOGO_DISPOSITIVOS !== 'undefined' && Array.isArray(CATALOGO_DISPOSITIVOS) && CATALOGO_DISPOSITIVOS.length > 0) {
-        return CATALOGO_DISPOSITIVOS;
-    }
-    return [{ id: 'p2rled', nombre: 'P2RLED', consumo: 0.038 }];
 };
 
 export const moduloVoltaje = {
@@ -62,7 +54,6 @@ export const moduloVoltaje = {
     abrirModalVoltaje: function(estadoActual, onCalcularCallback) {
         const self = this;
 
-        // Sincronizar estado recibido
         if (estadoActual) {
             self.estado = { ...self.estado, ...estadoActual };
         }
@@ -132,7 +123,6 @@ export const moduloVoltaje = {
             const filas = Array.from(circuitoDiv.querySelectorAll('.tabla-dispositivos-body tr'));
             numDispositivos = filas.length;
 
-            // Obtener listas de corrientes y distancias por fila
             const dispositivosDatos = filas.map(tr => {
                 const amp = parseFloat(tr.querySelector('.inp-amp')?.value) || 0;
                 const dist = parseFloat(tr.querySelector('.inp-dist')?.value) || 0;
@@ -141,27 +131,18 @@ export const moduloVoltaje = {
             });
 
             if (esPeorCaso) {
-                // PEOR CASO: Corriente total x Distancia total asignada al circuito
                 totalDistanciaM = parseFloat(circuitoDiv.querySelector('.inp-distancia-total-circuito')?.value) || 0;
                 vDrop = totalAmperios * (totalDistanciaM * resOhmMetro * factorClase);
-
             } else {
-                // SEGMENTADO REAL (Punto a Punto):
-                let corrienteAcumuladaRestante = totalAmperios; // La corriente total sale del panel
-
+                let corrienteAcumuladaRestante = totalAmperios;
                 dispositivosDatos.forEach(dev => {
                     totalDistanciaM += dev.dist;
-                    
-                    // Caída en este tramo específico: (Corriente que pasa por el cable) x (Distancia del tramo) x R x Factor
                     const vDropTramo = corrienteAcumuladaRestante * (dev.dist * resOhmMetro * factorClase);
                     vDrop += vDropTramo;
-
-                    // Después de alimentar a este dispositivo, la corriente que sigue hacia adelante disminuye
                     corrienteAcumuladaRestante -= dev.amp;
                 });
             }
 
-            // Actualizar etiquetas visuales
             const elDevs = circuitoDiv.querySelector('.metric-num-devs');
             const elAmps = circuitoDiv.querySelector('.metric-amps-used');
             const elDrop = circuitoDiv.querySelector('.metric-vdrop');
@@ -180,8 +161,8 @@ export const moduloVoltaje = {
             fuenteDiv.style.cssText = "background: #18181b; border: 1px solid #27272a; border-radius: 8px; padding: 18px; margin-bottom: 24px;";
 
             const nombreFuente = datosFuente?.nombreFuente || `NAC #${idxFuente < 10 ? '0' + idxFuente : idxFuente}`;
-            const marca = datosFuente?.marca || "Notifier UL";
-            const modelo = datosFuente?.modelo || "ACPS-610 CLASS B";
+            const marca = datosFuente?.marca || "Honeywell";
+            const modelo = datosFuente?.modelo || "HPFF12";
             const vNominal = datosFuente?.voltajeNominal || self.estado.voltajeFuente || 20.4;
             const claseFuenteVal = datosFuente?.clase || self.estado.clase || "B";
 
@@ -258,16 +239,17 @@ export const moduloVoltaje = {
 
                     <table style="width: 100%; border-collapse: collapse; font-size: 11px; color: #e4e4e7; margin-bottom: 8px;">
                         <thead>
-                            <tr style="border-bottom: 1px solid #3f3f46; background: #121215; text-align: left;">
-                                <th style="padding: 6px;">#</th>
-                                <th>Modelo de dispositivo</th>
-                                <th>Candela</th>
-                                <th>Patrón</th>
-                                <th>Volumen</th>
-                                <th>Tono</th>
-                                <th>Corriente (AMPS)</th>
-                                ${esPeorCaso ? '' : '<th>Distancia (metro)</th>'}
-                                <th style="text-align: center;">Acción</th>
+                            <tr style="border-bottom: 1px solid #3f3f46; background: #121215; text-align: center;">
+                                <th style="padding: 6px; width: 30px;">#</th>
+                                <th style="width: 120px;">Marca</th>
+                                <th style="width: 130px;">Tipo</th>
+                                <th style="width: 80px;">Montaje</th>
+                                <th style="width: 70px;">Candela</th>
+                                <th style="width: 110px;">Patrón</th>
+                                <th style="width: 80px;">Volumen</th>
+                                <th style="width: 90px;">Corriente (AMPS)</th>
+                                ${esPeorCaso ? '' : '<th style="width: 80px;">Distancia (m)</th>'}
+                                <th style="width: 50px;">Acción</th>
                             </tr>
                         </thead>
                         <tbody class="tabla-dispositivos-body"></tbody>
@@ -282,12 +264,16 @@ export const moduloVoltaje = {
 
                 function crearFilaDispositivo(datosDev = null) {
                     const row = document.createElement('tr');
-                    row.style.cssText = "border-bottom: 1px solid #27272a;";
+                    row.style.cssText = "border-bottom: 1px solid #27272a; text-align: center;";
 
                     const numFila = tbody.querySelectorAll('tr').length + 1;
-                    const catalogo = obtenerCatalogoValido();
-                    const opcionesHTML = catalogo.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
-                    const consumoDefault = catalogo[0]?.consumo || 0.038;
+
+                    const valMarca = datosDev?.marca || "HONEYWELL";
+                    const valTipo = datosDev?.tipo || "SIRENA CON ESTROBO";
+                    const valMontaje = datosDev?.montaje || "PARED";
+                    const valCandela = datosDev?.candela || "15";
+                    const valPatron = datosDev?.patron || "Temporal";
+                    const valVolumen = datosDev?.volumen || "Alto";
 
                     const columnaDistanciaHTML = esPeorCaso ? '' : `
                         <td><input type="number" step="1" class="inp-dist" value="${datosDev?.distancia || (numFila === 1 ? 10 : 1)}" style="background: #18181b; color: #fff; border: 1px solid #3f3f46; width: 60px; font-size: 11px; text-align: center;"></td>
@@ -295,34 +281,104 @@ export const moduloVoltaje = {
 
                     row.innerHTML = `
                         <td style="padding: 6px; font-weight: bold; color: #a1a1aa;">${numFila}</td>
-                        <td>
-                            <select class="sel-dev" style="background: #18181b; color: #fff; border: 1px solid #3f3f46; padding: 2px 4px; border-radius: 4px; font-size: 11px; width: 140px;">
-                                ${opcionesHTML}
-                            </select>
-                        </td>
-                        <td><input type="text" class="inp-candela" value="${datosDev?.candela || '30'}" style="background: #18181b; color: #fff; border: 1px solid #3f3f46; width: 40px; font-size: 11px; text-align: center;"></td>
-                        <td><input type="text" class="inp-patron" value="${datosDev?.patron || 'Temporal'}" style="background: #18181b; color: #fff; border: 1px solid #3f3f46; width: 65px; font-size: 11px; text-align: center;"></td>
-                        <td><input type="text" class="inp-volumen" value="${datosDev?.volumen || 'High'}" style="background: #18181b; color: #fff; border: 1px solid #3f3f46; width: 50px; font-size: 11px; text-align: center;"></td>
-                        <td><input type="text" class="inp-tono" value="${datosDev?.tono || 'Electromechanical'}" style="background: #18181b; color: #fff; border: 1px solid #3f3f46; width: 90px; font-size: 11px; text-align: center;"></td>
-                        <td><input type="number" step="0.001" class="inp-amp" value="${datosDev?.corriente || consumoDefault}" style="background: #18181b; color: #fff; border: 1px solid #3f3f46; width: 60px; font-size: 11px; text-align: center; font-weight: bold;"></td>
+                        <td><select class="sel-marca" style="background:#18181b; color:#fff; border:1px solid #3f3f46; font-size:11px; border-radius:4px; padding:2px;"></select></td>
+                        <td><select class="sel-tipo" style="background:#18181b; color:#fff; border:1px solid #3f3f46; font-size:11px; border-radius:4px; padding:2px;"></select></td>
+                        <td><select class="sel-montaje" style="background:#18181b; color:#fff; border:1px solid #3f3f46; font-size:11px; border-radius:4px; padding:2px;"></select></td>
+                        <td><select class="sel-candela" style="background:#18181b; color:#fff; border:1px solid #3f3f46; font-size:11px; border-radius:4px; padding:2px;"></select></td>
+                        <td><select class="sel-patron" style="background:#18181b; color:#fff; border:1px solid #3f3f46; font-size:11px; border-radius:4px; padding:2px;"></select></td>
+                        <td><select class="sel-volumen" style="background:#18181b; color:#fff; border:1px solid #3f3f46; font-size:11px; border-radius:4px; padding:2px;"></select></td>
+                        <td><input type="number" step="0.001" class="inp-amp" readonly style="background: #27272a; color: #38bdf8; border: 1px solid #3f3f46; width: 65px; font-size: 11px; text-align: center; font-weight: bold;"></td>
                         ${columnaDistanciaHTML}
-                        <td style="text-align: center;"><button class="btn-del-dev" style="background: transparent; border: none; color: #ef4444; cursor: pointer; font-size: 12px;">✕</button></td>
+                        <td><button class="btn-del-dev" style="background: transparent; border: none; color: #ef4444; cursor: pointer; font-size: 12px;">✕</button></td>
                     `;
 
-                    if (datosDev) {
-                        const devEncontrado = catalogo.find(c => c.nombre === datosDev.modelo || c.id === datosDev.catId || c.id === datosDev.id);
-                        if (devEncontrado) row.querySelector('.sel-dev').value = devEncontrado.id;
+                    const selMarca = row.querySelector('.sel-marca');
+                    const selTipo = row.querySelector('.sel-tipo');
+                    const selMontaje = row.querySelector('.sel-montaje');
+                    const selCandela = row.querySelector('.sel-candela');
+                    const selPatron = row.querySelector('.sel-patron');
+                    const selVolumen = row.querySelector('.sel-volumen');
+                    const inpAmp = row.querySelector('.inp-amp');
+
+                    OPCIONES_DESPLEGABLES.marcas.forEach(m => selMarca.add(new Option(m, m)));
+                    OPCIONES_DESPLEGABLES.tipos.forEach(t => selTipo.add(new Option(t, t)));
+                    OPCIONES_DESPLEGABLES.montajes.forEach(mo => selMontaje.add(new Option(mo, mo)));
+
+                    selMarca.value = valMarca;
+                    selTipo.value = valTipo;
+                    selMontaje.value = valMontaje;
+
+                    function actualizarDesplegablesYConsumo() {
+                        const m = selMarca.value;
+                        const t = selTipo.value;
+
+                        // 1. OBTENER MONTAJES DISPONIBLES (filtrando solo por Marca y Tipo)
+                        const opcionesMontaje = obtenerOpcionesFiltradas(m, t, null, null, null);
+                        const currMontaje = selMontaje.value;
+                        
+                        selMontaje.innerHTML = '';
+                        opcionesMontaje.montajes.forEach(mItem => selMontaje.add(new Option(mItem, mItem)));
+                        
+                        // Mantener el montaje actual si aún existe para esta marca/tipo
+                        if (opcionesMontaje.montajes.includes(currMontaje)) {
+                            selMontaje.value = currMontaje;
+                        }
+                        const montajeActual = selMontaje.value;
+
+                        // 2. OBTENER CANDELAS Y PATRONES DISPONIBLES (para la Marca, Tipo y Montaje actual)
+                        const opcionesCandelaYPatron = obtenerOpcionesFiltradas(m, t, montajeActual, null, null);
+                        
+                        // Reconstruir Candelas
+                        const currCd = selCandela.value;
+                        selCandela.innerHTML = '';
+                        opcionesCandelaYPatron.candelas.forEach(c => selCandela.add(new Option(c, c)));
+                        if (opcionesCandelaYPatron.candelas.includes(currCd)) {
+                            selCandela.value = currCd;
+                        }
+
+                        // Reconstruir Patrones (¡AQUÍ SE ELIMINAN "CODIFICADO" SI ES EXTERIOR!)
+                        const currPt = selPatron.value;
+                        selPatron.innerHTML = '';
+                        opcionesCandelaYPatron.patrones.forEach(p => selPatron.add(new Option(p, p)));
+                        if (opcionesCandelaYPatron.patrones.includes(currPt)) {
+                            selPatron.value = currPt;
+                        }
+                        const patronActual = selPatron.value;
+
+                        // 3. OBTENER VOLÚMENES DISPONIBLES (para la combinación exacta)
+                        const opcionesVolumen = obtenerOpcionesFiltradas(m, t, montajeActual, selCandela.value, patronActual);
+                        const currVl = selVolumen.value;
+                        selVolumen.innerHTML = '';
+                        opcionesVolumen.volumenes.forEach(v => selVolumen.add(new Option(v, v)));
+                        if (opcionesVolumen.volumenes.includes(currVl)) {
+                            selVolumen.value = currVl;
+                        }
+
+                        // 4. CALCULAR CONSUMO EN AMPERIOS
+                        const ampCalculado = obtenerConsumoAmperios(
+                            selMarca.value, 
+                            selTipo.value, 
+                            selMontaje.value, 
+                            selCandela.value, 
+                            selPatron.value, 
+                            selVolumen.value
+                        );
+                        inpAmp.value = ampCalculado.toFixed(3);
+
+                        recalcularMeticasCircuito(circuitoDiv);
                     }
 
-                    row.querySelectorAll('input, select').forEach(elem => {
-                        elem.addEventListener('input', () => recalcularMeticasCircuito(circuitoDiv));
+                    // Event Listeners para cambios dinámicos
+                    [selMarca, selTipo, selMontaje, selCandela, selPatron, selVolumen].forEach(el => {
+                        el.addEventListener('change', actualizarDesplegablesYConsumo);
                     });
 
-                    row.querySelector('.sel-dev').addEventListener('change', (e) => {
-                        const dev = catalogo.find(d => d.id === e.target.value);
-                        if (dev && dev.id !== 'custom') row.querySelector('.inp-amp').value = dev.consumo;
-                        recalcularMeticasCircuito(circuitoDiv);
-                    });
+                    if (!esPeorCaso) {
+                        row.querySelector('.inp-dist').addEventListener('input', () => recalcularMeticasCircuito(circuitoDiv));
+                    }
+
+                    // Inicializar primera carga
+                    actualizarDesplegablesYConsumo();
 
                     row.querySelector('.btn-del-dev').addEventListener('click', () => {
                         row.remove();
@@ -333,9 +389,10 @@ export const moduloVoltaje = {
                     recalcularMeticasCircuito(circuitoDiv);
                 }
 
-                // Cargar dispositivos si existen en datos previos (Proyectos Editados)
                 if (datosCircuito?.dispositivos && datosCircuito.dispositivos.length > 0) {
                     datosCircuito.dispositivos.forEach(dev => crearFilaDispositivo(dev));
+                } else {
+                    crearFilaDispositivo();
                 }
 
                 if (esPeorCaso) {
@@ -347,7 +404,6 @@ export const moduloVoltaje = {
 
                 circuitoDiv.querySelector('.btn-add-dispositivo').addEventListener('click', () => crearFilaDispositivo());
                 circuitoDiv.querySelector('.btn-del-circuito').addEventListener('click', () => circuitoDiv.remove());
-
                 circuitoDiv.querySelector('.sel-awg-circuito').addEventListener('change', () => recalcularMeticasCircuito(circuitoDiv));
 
                 contCircuitos.appendChild(circuitoDiv);
@@ -404,14 +460,14 @@ export const moduloVoltaje = {
 
                     const dispositivos = [];
                     cCard.querySelectorAll('.tabla-dispositivos-body tr').forEach(tr => {
-                        const sel = tr.querySelector('.sel-dev');
                         dispositivos.push({
-                            catId: sel ? sel.value : "p2rled",
-                            modelo: sel ? sel.options[sel.selectedIndex].text : "P2RLED",
-                            candela: tr.querySelector('.inp-candela').value,
-                            patron: tr.querySelector('.inp-patron').value,
-                            volumen: tr.querySelector('.inp-volumen').value,
-                            tono: tr.querySelector('.inp-tono').value,
+                            marca: tr.querySelector('.sel-marca').value,
+                            tipo: tr.querySelector('.sel-tipo').value,
+                            montaje: tr.querySelector('.sel-montaje').value,
+                            candela: tr.querySelector('.sel-candela').value,
+                            patron: tr.querySelector('.sel-patron').value,
+                            volumen: tr.querySelector('.sel-volumen').value,
+                            modelo: `${tr.querySelector('.sel-marca').value} - ${tr.querySelector('.sel-tipo').value}`,
                             corriente: parseFloat(tr.querySelector('.inp-amp').value) || 0,
                             distancia: esPeorCaso ? 0 : (parseFloat(tr.querySelector('.inp-dist')?.value) || 0)
                         });
@@ -446,10 +502,7 @@ export const moduloVoltaje = {
         modalContainer.querySelector('#btnDescargarExcel').addEventListener('click', async () => {
             try {
                 const fuentes = obtenerEstructuraCompletaProyecto(); 
-                
-                // Corregido: Usamos self.estado.metodo en lugar de estadoActual.metodo
                 const metodoCalculo = self.estado?.metodo || "peor_caso"; 
-
                 await generarExcelVoltaje(fuentes, metodoCalculo);
             } catch (error) {
                 console.error("Error al generar el Excel:", error);

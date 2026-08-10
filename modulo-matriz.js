@@ -241,9 +241,9 @@ export function renderizarFlujoSecuencial() {
 
     if (subFaseActual === "entradas") {
         htmlBotonesMacro = `
-            <button class="menu-flow-btn btn-macro-select" data-macro="alarma">Detección / Alarma</button>
-            <button class="menu-flow-btn btn-macro-select" data-macro="supervision">Módulos / Supervisión</button>
-            <button class="menu-flow-btn btn-macro-select" data-macro="falla_sistema">Fallas de Sistema</button>
+            <button class="menu-flow-btn btn-macro-select" data-macro="alarma">Señal de Alarma</button>
+            <button class="menu-flow-btn btn-macro-select" data-macro="supervision">Señal de Supervisión</button>
+            <button class="menu-flow-btn btn-macro-select" data-macro="falla_sistema">Señal de Falla</button>
         `;
     } else {
         htmlBotonesMacro = `
