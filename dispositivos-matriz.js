@@ -6,19 +6,7 @@ export const ARBOL_DISPOSITIVOS = {
                 "Weather Proof": { "Direccionable": true, "Convencional": true },
                 "Explosion Proof": { "Direccionable": true, "Convencional": true }
             },
-            "De Descarga CO2": {
-                "Estándar": { "Direccionable": true, "Convencional": true },
-                "Explosion Proof": { "Direccionable": true, "Convencional": true }
-            },
-            "De Descarga Diluvio": {
-                "Estándar": { "Direccionable": true, "Convencional": true },
-                "Explosion Proof": { "Direccionable": true, "Convencional": true }
-            },
-            "De Descarga Agente Limpio": {
-                "Estándar": { "Direccionable": true, "Convencional": true },
-                "Explosion Proof": { "Direccionable": true, "Convencional": true }
-            },
-            "De Descarga Espuma": {
+            "De Descarga": {
                 "Estándar": { "Direccionable": true, "Convencional": true },
                 "Explosion Proof": { "Direccionable": true, "Convencional": true }
             }
@@ -29,40 +17,32 @@ export const ARBOL_DISPOSITIVOS = {
                 "Explosion Proof": { "Direccionable": true, "Convencional": true }
             },
             "Por Aspiración": {
-                "Estándar": { "Direccionable": true, "Convencional": true }
+                "Relé de alarma": true
             },
             "En Ducto": {
                 "Estándar": { "Direccionable": true, "Convencional": true }
             },
             "De Haz Proyectado": {
-                "Estándar": { "Direccionable": true, "Convencional": true }
+                "Relé de alarma": true
             }
         },
         "Detectores multicriterio": {
-            "Fotoeléctrico": {
+            "Puntual": {
                 "Estándar": { "Direccionable": true, "Convencional": true }
             }
         },
         "Detectores de Temperatura": {
-            "Fija": {
-                "Estándar": { "Direccionable": true, "Convencional": true }
-            },
-            "Termovelocimétricos": {
+            "Puntual": {
                 "Estándar": { "Direccionable": true, "Convencional": true }
             },
             "Lineal": {
-                "Estándar": { "Direccionable": true, "Convencional": true }
+                "Cobre": { "Relé de alarma": true },
+                "Fibra": { "Relé de alarma": true }
             }
         },
         "Detectores de Flama": {
-            "Ultravioleta (UV)": {
-                "Estándar": { "Direccionable": true, "Convencional": true }
-            },
-            "Infrarrojo (IR)": {
-                "Estándar": { "Direccionable": true, "Convencional": true }
-            },
-            "UV / IR": {
-                "Estándar": { "Direccionable": true, "Convencional": true }
+            "Puntual": {
+                "Relé de alarma": true
             }
         },
         "Detectores de Gas": {
@@ -79,6 +59,18 @@ export const ARBOL_DISPOSITIVOS = {
     },
     
     "supervision": {
+         "Detectores de Humo": {
+            "Por Aspiración": {
+                "Relé de acción": true,
+                "Relé programable": true
+            }
+        },
+        "Detectores de Temperatura": {
+            "Lineal": {
+                "Cobre": { "Relé de supervisión": true },
+                "Fibra": { "Relé de supervisión": true }
+            }
+        },
         "Sistema de Extinción de Incendios": {
             "Interruptor de Detector del Flujo": true,
             "Interruptor de Tamper Switch de Válvula": true,
@@ -112,10 +104,28 @@ export const ARBOL_DISPOSITIVOS = {
             "Integridad de Notificación": {
                 "Cortocircuito": true
             }
-        }
+        },
+        "Detectores de Temperatura": {
+            "Lineal": {
+                "Cobre": { "Relé de Falla": true, "Relé de Corto": true },
+                "Fibra": { "Relé de Falla": true, "Relé de Corto": true }
+            }
+        },
+        "Detectores de Humo": {
+            "Por Aspiración": {
+                "Relé de falla": true
+            },
+            "De Haz Proyectado": {
+                "Relé de falla": true
+            }
+        },
+        "Detectores de Flama": {
+            "Puntual": {
+                "Relé de falla": true
+            }
+        },
     },
 
-    // NUEVA CONFIGURACIÓN DINÁMICA DE SALIDAS SOLICITADA
     "notificacion": {
         "Cornetas": { "Estándar": true, "Weather Proof": true, "Explosion Proof": true },
         "Cornetas con luces estroboscopica": { "Estándar": true, "Weather Proof": true, "Explosion Proof": true },
@@ -135,7 +145,6 @@ export const ARBOL_DISPOSITIVOS = {
     }
 };
 
-// Base fija de Anunciación (Las de notificación y enclavamiento se generarán de forma dinámica en la UI)
 export const LISTA_SALIDAS_EXCEL = [
     { letra: "A", grupo: "Anunciación", nombre: "Activar indicador común de la señal de alarma" },
     { letra: "B", grupo: "Anunciación", nombre: "Activar señal de alarma audible" },

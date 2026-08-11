@@ -1,4 +1,4 @@
-import { ARBOL_DISPOSITIVOS, LISTA_SALIDAS_EXCEL } from './config.js';
+import { ARBOL_DISPOSITIVOS, LISTA_SALIDAS_EXCEL } from './dispositivos-matriz.js';
 
 let entradasPorFacu = {}; 
 let salidasPorFacu = {};
@@ -266,30 +266,25 @@ export function renderizarFlujoSecuencial() {
 
         <div style="width: 100%; max-width: 1700px; margin: 0 auto; display: flex; gap: 25px; flex: 1; align-items: stretch;">
             <div style="flex: 3.8; display: flex; gap: 15px; background: #141417; padding: 20px; border-radius: 8px; border: 1px solid #27272a; box-sizing: border-box; overflow-x: auto;">
-                <div class="col-paso" id="sec-macro" style="flex: 1; min-width: 180px;">
-                    <span style="display:block; margin-bottom:12px; font-weight:bold; font-size:12px; color:#a1a1aa; height: 14px;">Categoría</span>
+                <div class="col-paso" id="sec-macro" style="flex: 1; min-width: 150px;">
                     <div style="display: flex; flex-direction: column; gap: 8px;">
                         ${htmlBotonesMacro}
                     </div>
                 </div>
                 
-                <div class="col-paso hidden" id="sec-dispositivo" style="flex: 1; min-width: 180px;">
-                    <span style="display:block; margin-bottom:12px; font-weight:bold; font-size:12px; color:#a1a1aa; height: 14px;">Dispositivo</span>
+                <div class="col-paso hidden" id="sec-dispositivo" style="flex: 1; min-width: 150px;">
                     <div id="box-dispositivos" style="display: flex; flex-direction: column; gap: 8px;"></div>
                 </div>
                 
-                <div class="col-paso hidden" id="sec-tecnologia" style="flex: 1; min-width: 180px;">
-                    <span style="display:block; margin-bottom:12px; font-weight:bold; font-size:12px; color:#a1a1aa; height: 14px;">Tecnología / Tipo</span>
+                <div class="col-paso hidden" id="sec-tecnologia" style="flex: 1; min-width: 150px;">
                     <div id="box-tecnologia" style="display: flex; flex-direction: column; gap: 8px;"></div>
                 </div>
                 
-                <div class="col-paso hidden" id="sec-proteccion" style="flex: 1; min-width: 180px;">
-                    <span style="display:block; margin-bottom:12px; font-weight:bold; font-size:12px; color:#a1a1aa; height: 14px;">Protección</span>
+                <div class="col-paso hidden" id="sec-proteccion" style="flex: 1; min-width: 150px;">
                     <div id="box-proteccion" style="display: flex; flex-direction: column; gap: 8px;"></div>
                 </div>
 
-                <div class="col-paso hidden" id="sec-ultimo-nivel" style="flex: 1; min-width: 180px;">
-                    <span style="display:block; margin-bottom:12px; font-weight:bold; font-size:12px; color:#a1a1aa; height: 14px;">Detalle Final</span>
+                <div class="col-paso hidden" id="sec-ultimo-nivel" style="flex: 1; min-width: 150px;">
                     <div id="box-ultimo-nivel" style="display: flex; flex-direction: column; gap: 8px;"></div>
                 </div>
 
@@ -530,6 +525,64 @@ export function reordenarListaPreview(fromIndex, toIndex) {
         lista.splice(toIndex, 0, movedItem);
         renderizarListaLateralPreview();
     }
+}
+
+function construirTextoDetector(dNom, n3, n4, n5, macroSeleccionada, facuActualIndex, zonaFormateada) {
+    // 1. Definir el singular correcto
+    let dispSingular = "detector";
+    if (dNom.includes("humo")) dispSingular = "detector de humo";
+    else if (dNom.includes("temperatura") || dNom.includes("calor") || dNom.includes("termico")) dispSingular = "detector de temperatura";
+    else if (dNom.includes("flama")) dispSingular = "detector de flama";
+    else if (dNom.includes("multicriterio")) dispSingular = "detector multicriterio";
+    else if (dNom.includes("gas")) dispSingular = "detector de gas";
+
+    const esFalla = macroSeleccionada === "falla_sistema" || dNom.includes("falla");
+
+    // 2. CASO TÉRMICO LINEAL
+    if (dNom.includes("temperatura") && n3.toLowerCase().includes("lineal")) {
+        const material = (n4 !== "N/A" && n4) ? ` de ${n4.toLowerCase()}` : "";
+        
+        let releTexto = "relé de alarma";
+        if (n5 !== "N/A" && n5) {
+            let n5Lower = n5.toLowerCase();
+            releTexto = (n5Lower === "relé alarma") ? "relé de alarma" : n5Lower;
+        }
+
+        const accion = esFalla ? "Activación de" : "Activación de"; // o "Falla de" si prefieres para falla
+        return `FACU #0${facuActualIndex} - ${accion} ${releTexto} de interfaz de detector térmico lineal${material} (zona de alarma #${zonaFormateada})`;
+    }
+
+    // 3. CASO CON RELÉ SELECCIONADO EN N4 O N5
+    const tieneReleN4 = n4 !== "N/A" && n4 && n4.toLowerCase().includes("relé");
+    const tieneReleN5 = n5 !== "N/A" && n5 && n5.toLowerCase().includes("relé");
+
+    if (tieneReleN4 || tieneReleN5) {
+        let releTexto = tieneReleN4 ? n4.toLowerCase() : n5.toLowerCase();
+        let tipoN3 = (n3 !== "N/A" && n3) ? ` ${n3.toLowerCase()}` : "";
+        let tecnologiaTexto = "";
+
+        if (tieneReleN5 && n4 !== "N/A" && n4 && !n4.toLowerCase().includes("estándar")) {
+            tecnologiaTexto += ` ${n4.toLowerCase()}`;
+        }
+
+        const accion = esFalla ? "Activación de" : "Activación de";
+        return `FACU #0${facuActualIndex} - ${accion} ${releTexto} de ${dispSingular}${tipoN3}${tecnologiaTexto} (zona de alarma #${zonaFormateada})`;
+    }
+
+    // 4. CASO ESTÁNDAR SIN RELÉ
+    const tipoN3 = (n3 !== "N/A" && n3) ? ` ${n3.toLowerCase()}` : "";
+    const tecnologiaTexto = (n5 !== "N/A" && n5) ? ` ${n5.toLowerCase()}` : "";
+    let proteccionTexto = "";
+
+    if (n4 !== "N/A" && n4) {
+        const n4Norm = n4.toLowerCase();
+        if (n4Norm !== "estándar" && n4Norm !== "estandar") {
+            proteccionTexto = ` ${n4Norm}`;
+        }
+    }
+
+    const accionBase = esFalla ? "Falla de cualquier" : "Activación de cualquier";
+    return `FACU #0${facuActualIndex} - ${accionBase} ${dispSingular}${tipoN3}${proteccionTexto}${tecnologiaTexto} (zona de alarma #${zonaFormateada})`;
 }
 
 export function vincularLogicaColumnas(superContenedor, totalZonasActual) {
@@ -832,11 +885,16 @@ export function vincularLogicaColumnas(superContenedor, totalZonasActual) {
                                     const fraseBase = `${condicion}${sufijoCircuito}`;
                                     const textoFormateado = fraseBase.charAt(0).toUpperCase() + fraseBase.slice(1);
                                     stringFila = `FACU #0${facuActualIndex} - ${textoFormateado} (zona de alarma #${zonaFormateada})`;
-                                } else {
+                                } 
+                                // Si en Falla seleccionan un detector, usa la misma lógica
+                                else if (dNom.includes("detector") || dNom.includes("humo") || dNom.includes("temperatura") || dNom.includes("flama") || dNom.includes("multicriterio") || dNom.includes("gas")) {
+                                    stringFila = construirTextoDetector(dNom, n3, n4, n5, macroSeleccionada, facuActualIndex, zonaFormateada);
+                                } 
+                                else {
                                     const textoN3 = n3 !== "N/A" ? n3.toLowerCase() : "";
                                     stringFila = `FACU #0${facuActualIndex} - Falla de ${dNom} ${textoN3} (zona de alarma #${zonaFormateada})`;
                                 }
-                            }
+                            } 
                             else if (disp === "Estaciones Manuales") {
                                 let tipoTexto = (n3 !== "N/A" && n3) ? ` ${n3.toLowerCase()}` : " de alarma";
                                 const funcionNormalizada = n4 ? n4.toLowerCase() : "";
@@ -849,26 +907,11 @@ export function vincularLogicaColumnas(superContenedor, totalZonasActual) {
                                 const tecnologiaTexto = (n5 !== "N/A" && n5) ? ` ${n5.toLowerCase()}` : "";
                                 stringFila = `FACU #0${facuActualIndex} - Activación de cualquier estación manual${tipoTexto}${funcionTexto}${tecnologiaTexto} (zona de alarma #${zonaFormateada})`;
                             } 
+                            // BLOQUE DE DETECTORES PARA SEÑALES DE ALARMA Y SUPERVISIÓN
                             else if (dNom.includes("detector") || dNom.includes("humo") || dNom.includes("temperatura") || dNom.includes("flama") || dNom.includes("multicriterio") || dNom.includes("gas")) {
-                                let dispSingular = "detector";
-                                if (dNom.includes("humo")) dispSingular = "detector de humo";
-                                else if (dNom.includes("temperatura") || dNom.includes("calor") || dNom.includes("termico")) dispSingular = "detector de temperatura";
-                                else if (dNom.includes("flama")) dispSingular = "detector de flama";
-                                else if (dNom.includes("multicriterio")) dispSingular = "detector multicriterio";
-                                else if (dNom.includes("gas")) dispSingular = "detector de gas";
-
-                                const tipoNivel3 = (n3 !== "N/A") ? ` ${n3.toLowerCase()}` : "";
-                                const tecnologiaTexto = (n5 !== "N/A") ? ` ${n5.toLowerCase()}` : "";
-                                stringFila = `FACU #0${facuActualIndex} - Activación de cualquier ${dispSingular}${tipoNivel3}${tecnologiaTexto} (zona de alarma #${zonaFormateada})`;
-                            } 
-                            else if (dNom.includes("sistema de extin") || dNom.includes("agente limpio") || dNom.includes("monitoreo de equipos")) {
-                                let txtNivel3 = n3.toLowerCase();
-                                if (txtNivel3.includes("tamper switch")) {
-                                    txtNivel3 = txtNivel3.replace("interruptor de ", "");
-                                }
-                                const conector = dNom.startsWith("sistema") ? "del" : "de";
-                                stringFila = `FACU #0${facuActualIndex} - Activación de ${txtNivel3} ${conector} ${dNom} (zona de alarma #${zonaFormateada})`;
+                                stringFila = construirTextoDetector(dNom, n3, n4, n5, macroSeleccionada, facuActualIndex, zonaFormateada);
                             }
+
                             else if (dNom.includes("notificación") || dNom.includes("notificacion") || dNom.includes("sirena") || dNom.includes("estrobo") || dNom.includes("parlante")) {
                                 const tipoNivel3 = (n3 !== "N/A") ? ` ${n3.toLowerCase()}` : "";
                                 const tecnologiaTexto = (n5 !== "N/A") ? ` ${n5.toLowerCase()}` : "";
@@ -901,6 +944,7 @@ export function vincularLogicaColumnas(superContenedor, totalZonasActual) {
         });
 
         superContenedor.querySelectorAll('.chk-zona-item').forEach(c => c.checked = false);
+     
         renderizarListaLateralPreview();
     });
 
@@ -1398,7 +1442,7 @@ export function desplegarMatrizExcelFinal(superContenedor) {
             }
 
         } catch (error) {
-            console.error("❌ Error al procesar el guardado:", error);
+            console.error("Error al procesar el guardado:", error);
             alert("Ocurrió un error al preparar los datos: " + error.message);
         }
     });
