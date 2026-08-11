@@ -1,13 +1,14 @@
 // catalogos-nac.js - Catálogo de dispositivos de notificación comerciales
 
 export const OPCIONES_DESPLEGABLES = {
-    marcas: ["HONEYWELL", "SIMPLEX", "WHEELOCK"],
+    marcas: ["HONEYWELL", "SIMPLEX", "EXCEDER", "WHEELOCK"],
     tipos: ["ESTROBO", "SIRENA", "SIRENA CON ESTROBO"],
     montajes: [
         "PARED", 
         "TECHO", 
         "PARED / TECHO INTERIOR", 
-        "PARED / TECHO EXTERIOR"
+        "PARED / TECHO EXTERIOR",
+        "PARED / TECHO"
     ]
 };
 
@@ -35,7 +36,7 @@ export const CATALOGO_MATRIZ_CONSUMOS = [
         marca: "HONEYWELL", tipo: "SIRENA CON ESTROBO", montaje: "PARED", candela: String(cd), patron: cfg.patron, volumen: cfg.volumen, mA: cfg.mA[i]
     }))),
     // ==========================================
-    // HONEYWELL - SIRENA INTERIOR Y EXTERIOR (ACTUALIZADO)
+    // HONEYWELL - SIRENA INTERIOR Y EXTERIOR 
     // ==========================================
     // Interior
     { marca: "HONEYWELL", tipo: "SIRENA", montaje: "PARED / TECHO INTERIOR", candela: "N/A", patron: "Temporal", volumen: "Alto", mA: 44 },
@@ -87,46 +88,94 @@ export const CATALOGO_MATRIZ_CONSUMOS = [
     // 3. SIMPLEX
     // ==========================================
     // Simplex Estrobo con Sirena (Pared/Techo)
-    { marca: "SIMPLEX", tipo: "SIRENA CON ESTROBO", montaje: "PARED", candela: "15", patron: "Estándar", volumen: "Estándar", mA: 51 },
-    { marca: "SIMPLEX", tipo: "SIRENA CON ESTROBO", montaje: "PARED", candela: "30", patron: "Estándar", volumen: "Estándar", mA: 63 },
-    { marca: "SIMPLEX", tipo: "SIRENA CON ESTROBO", montaje: "PARED", candela: "75", patron: "Estándar", volumen: "Estándar", mA: 81 },
-    { marca: "SIMPLEX", tipo: "SIRENA CON ESTROBO", montaje: "PARED", candela: "110", patron: "Estándar", volumen: "Estándar", mA: 143 },
-    { marca: "SIMPLEX", tipo: "SIRENA CON ESTROBO", montaje: "PARED", candela: "135", patron: "Estándar", volumen: "Estándar", mA: 143 },
-    { marca: "SIMPLEX", tipo: "SIRENA CON ESTROBO", montaje: "PARED", candela: "185", patron: "Estándar", volumen: "Estándar", mA: 143 },
+    { marca: "SIMPLEX", tipo: "SIRENA CON ESTROBO", montaje: "PARED / TECHO", candela: "15", patron: "Estándar", volumen: "Estándar", mA: 51 },
+    { marca: "SIMPLEX", tipo: "SIRENA CON ESTROBO", montaje: "PARED / TECHO", candela: "30", patron: "Estándar", volumen: "Estándar", mA: 63 },
+    { marca: "SIMPLEX", tipo: "SIRENA CON ESTROBO", montaje: "PARED / TECHO", candela: "75", patron: "Estándar", volumen: "Estándar", mA: 81 },
+    { marca: "SIMPLEX", tipo: "SIRENA CON ESTROBO", montaje: "PARED / TECHO", candela: "110", patron: "Estándar", volumen: "Estándar", mA: 143 },
+    { marca: "SIMPLEX", tipo: "SIRENA CON ESTROBO", montaje: "PARED / TECHO", candela: "135", patron: "Estándar", volumen: "Estándar", mA: 143 },
+    { marca: "SIMPLEX", tipo: "SIRENA CON ESTROBO", montaje: "PARED / TECHO", candela: "185", patron: "Estándar", volumen: "Estándar", mA: 143 },
     
     // Simplex Estrobo
-    { marca: "SIMPLEX", tipo: "ESTROBO", montaje: "PARED", candela: "15", patron: "N/A", volumen: "N/A", mA: 31 },
-    { marca: "SIMPLEX", tipo: "ESTROBO", montaje: "PARED", candela: "30", patron: "N/A", volumen: "N/A", mA: 44 },
-    { marca: "SIMPLEX", tipo: "ESTROBO", montaje: "PARED", candela: "75", patron: "N/A", volumen: "N/A", mA: 60 },
-    { marca: "SIMPLEX", tipo: "ESTROBO", montaje: "PARED", candela: "110", patron: "N/A", volumen: "N/A", mA: 125 },
-    { marca: "SIMPLEX", tipo: "ESTROBO", montaje: "PARED", candela: "135", patron: "N/A", volumen: "N/A", mA: 125 },
-    { marca: "SIMPLEX", tipo: "ESTROBO", montaje: "PARED", candela: "185", patron: "N/A", volumen: "N/A", mA: 125 },
+    { marca: "SIMPLEX", tipo: "ESTROBO", montaje: "PARED / TECHO", candela: "15", patron: "N/A", volumen: "N/A", mA: 31 },
+    { marca: "SIMPLEX", tipo: "ESTROBO", montaje: "PARED / TECHO", candela: "30", patron: "N/A", volumen: "N/A", mA: 44 },
+    { marca: "SIMPLEX", tipo: "ESTROBO", montaje: "PARED / TECHO", candela: "75", patron: "N/A", volumen: "N/A", mA: 60 },
+    { marca: "SIMPLEX", tipo: "ESTROBO", montaje: "PARED / TECHO", candela: "110", patron: "N/A", volumen: "N/A", mA: 125 },
+    { marca: "SIMPLEX", tipo: "ESTROBO", montaje: "PARED / TECHO", candela: "135", patron: "N/A", volumen: "N/A", mA: 125 },
+    { marca: "SIMPLEX", tipo: "ESTROBO", montaje: "PARED / TECHO", candela: "185", patron: "N/A", volumen: "N/A", mA: 125 },
 
     // Simplex Solo Sirena
-    { marca: "SIMPLEX", tipo: "SIRENA", montaje: "PARED", candela: "N/A", patron: "Estándar", volumen: "Estándar", mA: 27 },
+    { marca: "SIMPLEX", tipo: "SIRENA", montaje: "PARED / TECHO", candela: "N/A", patron: "Estándar", volumen: "Estándar", mA: 27 },
 
     // ==========================================
-    // 4. WHEELOCK (EXCEDER)
+    // 4. EXCEDER
     // ==========================================
-    // Wheelock Solo Sirena
-    { marca: "WHEELOCK", tipo: "SIRENA", montaje: "PARED", candela: "N/A", patron: "Estándar", volumen: "90 dB", mA: 22 },
-    { marca: "WHEELOCK", tipo: "SIRENA", montaje: "PARED", candela: "N/A", patron: "Estándar", volumen: "95 dB", mA: 30 },
 
-    // Wheelock Estrobo
-    { marca: "WHEELOCK", tipo: "ESTROBO", montaje: "PARED", candela: "15", patron: "N/A", volumen: "N/A", mA: 30 },
-    { marca: "WHEELOCK", tipo: "ESTROBO", montaje: "PARED", candela: "30", patron: "N/A", volumen: "N/A", mA: 40 },
-    { marca: "WHEELOCK", tipo: "ESTROBO", montaje: "PARED", candela: "75", patron: "N/A", volumen: "N/A", mA: 115 },
-    { marca: "WHEELOCK", tipo: "ESTROBO", montaje: "PARED", candela: "110", patron: "N/A", volumen: "N/A", mA: 200 },
+    // Solo Sirena
+    { marca: "EXCEDER", tipo: "SIRENA", montaje: "PARED / TECHO", candela: "N/A", patron: "Estándar", volumen: "90 dB", mA: 22 },
+    { marca: "EXCEDER", tipo: "SIRENA", montaje: "PARED / TECHO", candela: "N/A", patron: "Estándar", volumen: "95 dB", mA: 44 },
+    { marca: "EXCEDER", tipo: "SIRENA", montaje: "PARED / TECHO", candela: "N/A", patron: "Estándar", volumen: "99 dB", mA: 84 },
 
-    // Wheelock Estrobo con Sirena
-    { marca: "WHEELOCK", tipo: "SIRENA CON ESTROBO", montaje: "PARED", candela: "15", patron: "Estándar", volumen: "90 dB", mA: 38 },
-    { marca: "WHEELOCK", tipo: "SIRENA CON ESTROBO", montaje: "PARED", candela: "30", patron: "Estándar", volumen: "90 dB", mA: 42 },
-    { marca: "WHEELOCK", tipo: "SIRENA CON ESTROBO", montaje: "PARED", candela: "75", patron: "Estándar", volumen: "90 dB", mA: 122 },
-    { marca: "WHEELOCK", tipo: "SIRENA CON ESTROBO", montaje: "PARED", candela: "110", patron: "Estándar", volumen: "90 dB", mA: 209 },
-    { marca: "WHEELOCK", tipo: "SIRENA CON ESTROBO", montaje: "PARED", candela: "15", patron: "Estándar", volumen: "95 dB", mA: 40 },
-    { marca: "WHEELOCK", tipo: "SIRENA CON ESTROBO", montaje: "PARED", candela: "30", patron: "Estándar", volumen: "95 dB", mA: 46 },
-    { marca: "WHEELOCK", tipo: "SIRENA CON ESTROBO", montaje: "PARED", candela: "75", patron: "Estándar", volumen: "95 dB", mA: 125 },
-    { marca: "WHEELOCK", tipo: "SIRENA CON ESTROBO", montaje: "PARED", candela: "110", patron: "Estándar", volumen: "95 dB", mA: 219 }
+    // Estrobo
+    { marca: "EXCEDER", tipo: "ESTROBO", montaje: "PARED / TECHO", candela: "15", patron: "N/A", volumen: "N/A", mA: 61 },
+    { marca: "EXCEDER", tipo: "ESTROBO", montaje: "PARED / TECHO", candela: "30", patron: "N/A", volumen: "N/A", mA: 85 },
+    { marca: "EXCEDER", tipo: "ESTROBO", montaje: "PARED / TECHO", candela: "60", patron: "N/A", volumen: "N/A", mA: 103 },
+    { marca: "EXCEDER", tipo: "ESTROBO", montaje: "PARED / TECHO", candela: "75", patron: "N/A", volumen: "N/A", mA: 135 },
+    { marca: "EXCEDER", tipo: "ESTROBO", montaje: "PARED / TECHO", candela: "95", patron: "N/A", volumen: "N/A", mA: 163 },
+    { marca: "EXCEDER", tipo: "ESTROBO", montaje: "PARED / TECHO", candela: "110", patron: "N/A", volumen: "N/A", mA: 182 },
+    { marca: "EXCEDER", tipo: "ESTROBO", montaje: "PARED / TECHO", candela: "115", patron: "N/A", volumen: "N/A", mA: 182 },
+    { marca: "EXCEDER", tipo: "ESTROBO", montaje: "PARED / TECHO", candela: "135", patron: "N/A", volumen: "N/A", mA: 205 },
+    { marca: "EXCEDER", tipo: "ESTROBO", montaje: "PARED / TECHO", candela: "150", patron: "N/A", volumen: "N/A", mA: 205 },
+    { marca: "EXCEDER", tipo: "ESTROBO", montaje: "PARED / TECHO", candela: "177", patron: "N/A", volumen: "N/A", mA: 253 },
+    { marca: "EXCEDER", tipo: "ESTROBO", montaje: "PARED / TECHO", candela: "185", patron: "N/A", volumen: "N/A", mA: 253 },
+
+    // Estrobo con Sirena
+    { marca: "EXCEDER", tipo: "SIRENA CON ESTROBO", montaje: "PARED / TECHO", candela: "15", patron: "Estándar", volumen: "90 dB", mA: 65 },
+    { marca: "EXCEDER", tipo: "SIRENA CON ESTROBO", montaje: "PARED / TECHO", candela: "30", patron: "Estándar", volumen: "90 dB", mA: 84 },
+    { marca: "EXCEDER", tipo: "SIRENA CON ESTROBO", montaje: "PARED / TECHO", candela: "60", patron: "Estándar", volumen: "90 dB", mA: 120 },
+    { marca: "EXCEDER", tipo: "SIRENA CON ESTROBO", montaje: "PARED / TECHO", candela: "75", patron: "Estándar", volumen: "90 dB", mA: 136 },
+    { marca: "EXCEDER", tipo: "SIRENA CON ESTROBO", montaje: "PARED / TECHO", candela: "95", patron: "Estándar", volumen: "90 dB", mA: 157 },
+    { marca: "EXCEDER", tipo: "SIRENA CON ESTROBO", montaje: "PARED / TECHO", candela: "110", patron: "Estándar", volumen: "90 dB", mA: 184 },
+    { marca: "EXCEDER", tipo: "SIRENA CON ESTROBO", montaje: "PARED / TECHO", candela: "115", patron: "Estándar", volumen: "90 dB", mA: 184 },
+    { marca: "EXCEDER", tipo: "SIRENA CON ESTROBO", montaje: "PARED / TECHO", candela: "135", patron: "Estándar", volumen: "90 dB", mA: 226 },
+    { marca: "EXCEDER", tipo: "SIRENA CON ESTROBO", montaje: "PARED / TECHO", candela: "150", patron: "Estándar", volumen: "90 dB", mA: 226 },
+    { marca: "EXCEDER", tipo: "SIRENA CON ESTROBO", montaje: "PARED / TECHO", candela: "177", patron: "Estándar", volumen: "90 dB", mA: 267 },
+    { marca: "EXCEDER", tipo: "SIRENA CON ESTROBO", montaje: "PARED / TECHO", candela: "185", patron: "Estándar", volumen: "90 dB", mA: 267 },
+
+    { marca: "EXCEDER", tipo: "SIRENA CON ESTROBO", montaje: "PARED / TECHO", candela: "15", patron: "Estándar", volumen: "95 dB", mA: 73 },
+    { marca: "EXCEDER", tipo: "SIRENA CON ESTROBO", montaje: "PARED / TECHO", candela: "30", patron: "Estándar", volumen: "95 dB", mA: 87 },
+    { marca: "EXCEDER", tipo: "SIRENA CON ESTROBO", montaje: "PARED / TECHO", candela: "60", patron: "Estándar", volumen: "95 dB", mA: 128 },
+    { marca: "EXCEDER", tipo: "SIRENA CON ESTROBO", montaje: "PARED / TECHO", candela: "75", patron: "Estándar", volumen: "95 dB", mA: 139 },
+    { marca: "EXCEDER", tipo: "SIRENA CON ESTROBO", montaje: "PARED / TECHO", candela: "95", patron: "Estándar", volumen: "95 dB", mA: 163 },
+    { marca: "EXCEDER", tipo: "SIRENA CON ESTROBO", montaje: "PARED / TECHO", candela: "110", patron: "Estándar", volumen: "95 dB", mA: 186 },
+    { marca: "EXCEDER", tipo: "SIRENA CON ESTROBO", montaje: "PARED / TECHO", candela: "115", patron: "Estándar", volumen: "95 dB", mA: 186 },
+    { marca: "EXCEDER", tipo: "SIRENA CON ESTROBO", montaje: "PARED / TECHO", candela: "135", patron: "Estándar", volumen: "95 dB", mA: 230 },
+    { marca: "EXCEDER", tipo: "SIRENA CON ESTROBO", montaje: "PARED / TECHO", candela: "150", patron: "Estándar", volumen: "95 dB", mA: 230 },
+    { marca: "EXCEDER", tipo: "SIRENA CON ESTROBO", montaje: "PARED / TECHO", candela: "177", patron: "Estándar", volumen: "95 dB", mA: 272 },
+    { marca: "EXCEDER", tipo: "SIRENA CON ESTROBO", montaje: "PARED / TECHO", candela: "185", patron: "Estándar", volumen: "95 dB", mA: 282 },
+
+    { marca: "EXCEDER", tipo: "SIRENA CON ESTROBO", montaje: "PARED / TECHO", candela: "15", patron: "Estándar", volumen: "99 dB", mA: 82 },
+    { marca: "EXCEDER", tipo: "SIRENA CON ESTROBO", montaje: "PARED / TECHO", candela: "30", patron: "Estándar", volumen: "99 dB", mA: 102 },
+    { marca: "EXCEDER", tipo: "SIRENA CON ESTROBO", montaje: "PARED / TECHO", candela: "60", patron: "Estándar", volumen: "99 dB", mA: 141 },
+    { marca: "EXCEDER", tipo: "SIRENA CON ESTROBO", montaje: "PARED / TECHO", candela: "75", patron: "Estándar", volumen: "99 dB", mA: 148 },
+    { marca: "EXCEDER", tipo: "SIRENA CON ESTROBO", montaje: "PARED / TECHO", candela: "95", patron: "Estándar", volumen: "99 dB", mA: 176 },
+    { marca: "EXCEDER", tipo: "SIRENA CON ESTROBO", montaje: "PARED / TECHO", candela: "110", patron: "Estándar", volumen: "99 dB", mA: 197 },
+    { marca: "EXCEDER", tipo: "SIRENA CON ESTROBO", montaje: "PARED / TECHO", candela: "115", patron: "Estándar", volumen: "99 dB", mA: 197 },
+    { marca: "EXCEDER", tipo: "SIRENA CON ESTROBO", montaje: "PARED / TECHO", candela: "135", patron: "Estándar", volumen: "99 dB", mA: 242 },
+    { marca: "EXCEDER", tipo: "SIRENA CON ESTROBO", montaje: "PARED / TECHO", candela: "150", patron: "Estándar", volumen: "99 dB", mA: 242 },
+    { marca: "EXCEDER", tipo: "SIRENA CON ESTROBO", montaje: "PARED / TECHO", candela: "177", patron: "Estándar", volumen: "99 dB", mA: 282 },
+    { marca: "EXCEDER", tipo: "SIRENA CON ESTROBO", montaje: "PARED / TECHO", candela: "185", patron: "Estándar", volumen: "99 dB", mA: 282 },
+
+    // ==========================================
+    // 4. WHEELOCK
+    // ==========================================
+
+    // BELL STROBE
+    { marca: "WHEELOCK", tipo: "CAMPANA CON ESTROBO", montaje: "PARED / TECHO", candela: "15", patron: "Estándar", volumen: "N/A", mA: 100 },
+    { marca: "WHEELOCK", tipo: "CAMPANA CON ESTROBO", montaje: "PARED / TECHO", candela: "30", patron: "Estándar", volumen: "N/A", mA: 132 },
+    { marca: "WHEELOCK", tipo: "CAMPANA CON ESTROBO", montaje: "PARED / TECHO", candela: "75", patron: "Estándar", volumen: "N/A", mA: 205 },
+    { marca: "WHEELOCK", tipo: "CAMPANA CON ESTROBO", montaje: "PARED / TECHO", candela: "110", patron: "Estándar", volumen: "N/A", mA: 260 },
+   
+
 ];
 
 export function obtenerOpcionesFiltradas(marca, tipo, montaje, candela, patron) {

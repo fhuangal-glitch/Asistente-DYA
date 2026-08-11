@@ -2,19 +2,23 @@ import { OPCIONES_DESPLEGABLES, CATALOGO_MATRIZ_CONSUMOS, obtenerOpcionesFiltrad
 import { generarExcelVoltaje } from './excel-generator.js';
 
 const RESISTENCIA_CABLE_OHM_M = {
-    "18": 0.021,
-    "16": 0.013,
-    "14": 0.008,
-    "12": 0.005 
+    "18 Stranded": 0.027723,
+    "18 Solid":    0.026509,
+    "16 Stranded": 0.017355,
+    "16 Solid":    0.016666,
+    "14 Stranded": 0.010695,
+    "14 Solid":    0.010465,
+    "12 Stranded": 0.006725,
+    "12 Solid":    0.006594
 };
 
 export const moduloVoltaje = {
     estado: {
-        paso: "METODO",
-        metodo: "peor_caso", 
+        paso: "FINALIZADO",
+        metodo: "peor_caso", // "peor_caso" (End Point) o "segmentado" (Point to Point)
         clase: "B",  
-        calibreAWG: "14",
-        voltajeFuente: 20.4,
+        calibreAWG: "14 Solid",
+        voltajeFuente: 24,
         distanciaTotal: 0,
         corrienteTotal: 0,
         numDispositivos: 0,
@@ -25,23 +29,15 @@ export const moduloVoltaje = {
 
     iniciar: function() {
         this.estado = {
-            paso: "METODO",
+            paso: "FINALIZADO",
             metodo: "peor_caso", 
             clase: "B",  
-            calibreAWG: "14",
-            voltajeFuente: 20.4,
+            calibreAWG: "14 Solid",
+            voltajeFuente: 24,
             distanciaTotal: 0,
             corrienteTotal: 0,
             numDispositivos: 0,
             fuentes: []
-        };
-
-        return {
-            texto: "Módulo de Caída de Voltaje. ¿Qué método de cálculo deseas utilizar?",
-            opciones: [
-                { texto: "Método Peor Caso", subtexto: "Suma la corriente al final del cable (más conservador)", valor: "Método Peor Caso" },
-                { texto: "Método Segmentado", subtexto: "Calcula la caída punto a punto en cada dispositivo (más exacto)", valor: "Método Segmentado" }
-            ]
         };
     },
 
@@ -58,7 +54,9 @@ export const moduloVoltaje = {
             self.estado = { ...self.estado, ...estadoActual };
         }
 
-        const esPeorCaso = self.estado.metodo === "peor_caso";
+        // Remover modal existente si ya estaba abierto
+        const prevModal = document.getElementById('voltajeModalOverlay');
+        if (prevModal) prevModal.remove();
 
         let menuContextual = document.getElementById('contextMenuTablaNAC');
         if (!menuContextual) {
@@ -96,7 +94,13 @@ export const moduloVoltaje = {
             <div style="padding: 14px 24px; border-bottom: 1px solid #27272a; display: flex; justify-content: space-between; align-items: center; background: #121215;">
                 <div>
                     <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #f4f4f5; letter-spacing: 0.5px;">Panel de Cálculo de Caída de Voltaje NAC</h3>
-                    <p style="margin: 2px 0 0 0; font-size: 12px; color: #a1a1aa;">Diseño Multicircuito / Multifuente según norma NFPA 72 - Método: ${esPeorCaso ? 'Peor Caso' : 'Segmentado (Punto a Punto)'}</p>
+                    <div style="margin-top: 4px; display: flex; align-items: center; gap: 8px; font-size: 12px; color: #a1a1aa;">
+                        <span>Método de Cálculo:</span>
+                        <select id="selMetodoCalculoGlobal" style="background: #18181b; color: #38bdf8; border: 1px solid #3f3f46; font-weight: bold; padding: 3px 8px; border-radius: 4px; font-size: 12px; cursor: pointer;">
+                            <option value="peor_caso" ${self.estado.metodo === "peor_caso" ? "selected" : ""}>Método End Point</option>
+                            <option value="segmentado" ${self.estado.metodo === "segmentado" ? "selected" : ""}>Método Point to Point</option>
+                        </select>
+                    </div>
                 </div>
                 <button id="closeModalBtn" style="background: transparent; border: none; color: #a1a1aa; font-size: 22px; cursor: pointer;">✕</button>
             </div>
@@ -120,15 +124,29 @@ export const moduloVoltaje = {
         document.body.appendChild(modalOverlay);
 
         const contFuentesGlobal = modalContainer.querySelector('#contenedorFuentesGlobal');
+        const selectMetodo = modalContainer.querySelector('#selMetodoCalculoGlobal');
+
+        // Evento para cambiar el método dinámicamente y reconstruir la vista
+        selectMetodo.addEventListener('change', (e) => {
+            self.estado.metodo = e.target.value;
+            const estadoActualizado = {
+                ...self.estado,
+                fuentes: obtenerEstructuraCompletaProyecto()
+            };
+            modalOverlay.remove();
+            self.abrirModalVoltaje(estadoActualizado, onCalcularCallback);
+        });
+
+        const esPeorCaso = self.estado.metodo === "peor_caso";
 
         function recalcularMeticasCircuito(circuitoDiv) {
             const fuenteCard = circuitoDiv.closest('.fuente-nac-card');
             if (!fuenteCard) return;
 
-            const vFuente = parseFloat(fuenteCard.querySelector('.inp-vfuente-nominal')?.value) || 20.4;
+            const vFuente = parseFloat(fuenteCard.querySelector('.inp-vfuente-nominal')?.value) || 24;
             const claseFuente = fuenteCard.querySelector('.sel-clase-fuente')?.value || "B";
-            const awgCircuito = circuitoDiv.querySelector('.sel-awg-circuito')?.value || "14";
-            const resOhmMetro = RESISTENCIA_CABLE_OHM_M[awgCircuito] || 0.008;
+            const awgCircuito = circuitoDiv.querySelector('.sel-awg-circuito')?.value || "14 Solid";
+            const resOhmMetro = RESISTENCIA_CABLE_OHM_M[awgCircuito] || 0.000;
             const factorClase = (claseFuente === "B") ? 2 : 1;
 
             let totalAmperios = 0;
@@ -243,7 +261,7 @@ export const moduloVoltaje = {
                 circuitoDiv.style.cssText = "background: #09090b; border: 1px solid #27272a; border-radius: 6px; padding: 12px;";
 
                 const nombreCircuito = datosCircuito?.nombreCircuito || `Circuito NAC ${idxCircuito}`;
-                const awgVal = datosCircuito?.calibreAWG || self.estado.calibreAWG || "14";
+                const awgVal = datosCircuito?.calibreAWG || self.estado.calibreAWG || "14 Solid";
                 const distTotalInicial = datosCircuito?.distanciaTotal || self.estado.distanciaTotal || 100;
 
                 const campoDistanciaPeorCasoHTML = esPeorCaso ? `
@@ -261,10 +279,14 @@ export const moduloVoltaje = {
                         <div>
                             AWG: 
                             <select class="sel-awg-circuito" style="background: #27272a; color: #fff; border: 1px solid #3f3f46; border-radius: 4px; padding: 2px 4px; font-weight: bold;">
-                                <option value="18" ${awgVal === "18" ? "selected" : ""}>18 AWG</option>
-                                <option value="16" ${awgVal === "16" ? "selected" : ""}>16 AWG</option>
-                                <option value="14" ${awgVal === "14" ? "selected" : ""}>14 AWG</option>
-                                <option value="12" ${awgVal === "12" ? "selected" : ""}>12 AWG</option>
+                                <option value="18 Stranded" ${awgVal === "18 Stranded" ? "selected" : ""}>18 Stranded AWG</option>
+                                <option value="18 Solid" ${awgVal === "18 Solid" ? "selected" : ""}>18 Solid AWG</option>
+                                <option value="16 Stranded" ${awgVal === "16 Stranded" ? "selected" : ""}>16 Stranded AWG</option>
+                                <option value="16 Solid" ${awgVal === "16 Solid" ? "selected" : ""}>16 Solid AWG</option>
+                                <option value="14 Stranded" ${awgVal === "14 Stranded" ? "selected" : ""}>14 Stranded AWG</option>
+                                <option value="14 Solid" ${awgVal === "14 Solid" ? "selected" : ""}>14 Solid AWG</option>
+                                <option value="12 Stranded" ${awgVal === "12 Stranded" ? "selected" : ""}>12 Stranded AWG</option>
+                                <option value="12 Solid" ${awgVal === "12 Solid" ? "selected" : ""}>12 Solid AWG</option>
                             </select>
                         </div> 
                         ${campoDistanciaPeorCasoHTML} |
@@ -313,7 +335,6 @@ export const moduloVoltaje = {
                     });
                 }
 
-                // FIRMA CORREGIDA (incluye filaReferencia)
                 function crearFilaDispositivo(datosDev = null, filaReferencia = null) {
                     const row = document.createElement('tr');
                     row.style.cssText = "border-bottom: 1px solid #27272a; text-align: center;";
@@ -549,7 +570,7 @@ export const moduloVoltaje = {
                 const marca = fCard.querySelector('.inp-marca-fuente').value;
                 const modelo = fCard.querySelector('.inp-modelo-fuente').value;
                 const clase = fCard.querySelector('.sel-clase-fuente').value;
-                const voltajeNominal = parseFloat(fCard.querySelector('.inp-vfuente-nominal').value) || 20.4;
+                const voltajeNominal = parseFloat(fCard.querySelector('.inp-vfuente-nominal').value) || 24;
 
                 const circuitos = [];
                 fCard.querySelectorAll('.circuito-nac-card').forEach(cCard => {
