@@ -2,8 +2,7 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 import { flujoMatriz } from './n-proy-matriz.js';
 import { flujoBateria } from './n-proy-bateria.js';
 import { flujoVoltaje } from './n-proy-voltaje.js';
-import { setBotState, typeWelcomeMessage, renderBotResponse } from './bot-ui.js';
-
+import { setBotState, typeWelcomeMessage, renderBotResponse, validarEntradaNombre } from './bot-ui.js';
 
 const SUPABASE_URL = "https://hesgsgvzgfdagityctdk.supabase.co";
 const SUPABASE_KEY = "sb_publishable_fYCASIho-yAC7XIXtF7YvA_y4TtnEfW";
@@ -22,9 +21,9 @@ const botAvatar = document.getElementById('bot-avatar');
 
 let silenceTimeout = null; 
 
-// Estado conversacional global para flujos de módulos ('matriz' | 'voltaje' | 'baterias' | null)
+// Estado conversacional
 let moduloActivoNuevoProy = null;
-
+let moduloPendiente = null; 
 let clienteActual = "";
 let proyectoEnEdicionId = null; 
 
@@ -45,16 +44,12 @@ if (userInput) {
     });
 }
 
-// Inicialización de la pantalla de bienvenida usando bot-ui.js
 window.addEventListener('load', () => { 
     if (welcomeScreen && !welcomeScreen.classList.contains('hidden') && botAvatar) {
-        typeWelcomeMessage(botAvatar, () => {
-            // Callback opcional al finalizar el tipeo de bienvenida
-        });
+        typeWelcomeMessage(botAvatar, () => {});
     }
 });
 
-// Helper para generar botoneras generales
 function generarOpcionesChat(opciones) {
     const wrapper = document.createElement('div');
     wrapper.style.cssText = "display: flex; flex-direction: column; gap: 8px; margin-top: 10px; width: 100%;";
@@ -70,7 +65,6 @@ function generarOpcionesChat(opciones) {
     return wrapper;
 }
 
-// Helper para botones horizontales de "Nueva tarea"
 function crearBotoneraNuevasTareas() {
     const contenedorAccionesNuevas = document.createElement('div');
     contenedorAccionesNuevas.style.cssText = "margin-top: 10px; padding-top: 8px; border-top: 1px solid #3f3f46; display: flex; flex-direction: column; gap: 6px;";
@@ -115,7 +109,6 @@ function crearBotoneraNuevasTareas() {
     return contenedorAccionesNuevas;
 }
 
-// Envía y delega el renderizado a bot-ui.js
 function publicarRespuestaBot(botReply, opciones = null, miniAvatar, msgDiv, customElementHTML = null) {
     let elementoInteractivo = null;
 
@@ -128,14 +121,112 @@ function publicarRespuestaBot(botReply, opciones = null, miniAvatar, msgDiv, cus
     renderBotResponse(msgDiv, botReply, miniAvatar, chatBox, elementoInteractivo);
 }
 
-// Inicialización de flujos con los módulos importados al inicio
+/* ==========================================================================
+   MENSAJE COMPLETO Y UNIFICADO DE CONTINUIDAD AL REGRESAR AL CHAT
+   ========================================================================== */
+async function darBienvenidaContinuidad() {
+    const container = document.createElement('div');
+    container.classList.add('bot-msg-container');
+    const miniAvatar = document.createElement('img');
+    miniAvatar.src = 'bot-open-original-chat.png'; 
+    miniAvatar.className = 'bot-chat-img';
+    const msgDiv = document.createElement('div');
+    msgDiv.className = 'bot-message';
+    
+    container.appendChild(miniAvatar);
+    container.appendChild(msgDiv);
+    chatBox.appendChild(container);
+
+    const contenedorGeneral = document.createElement('div');
+    contenedorGeneral.style.cssText = "display: flex; flex-direction: column; gap: 10px; width: 100%; margin-top: 8px;";
+
+    let mensaje = "";
+
+    if (clienteActual) {
+        mensaje = `¿Seguimos trabajando con "${clienteActual}" o deseas cambiar a otro?`;
+
+        try {
+            const client = getSupabaseClient();
+            let { data: proyectos } = await client
+                .from('proyectos')
+                .select('*')
+                .ilike('cliente', `%${clienteActual.trim()}%`);
+
+            if (proyectos && proyectos.length > 0) {
+                const labelProyectos = document.createElement('span');
+                labelProyectos.style.cssText = "font-size: 11px; color: #a1a1aa;";
+                labelProyectos.innerText = "Proyectos guardados anteriormente:";
+                contenedorGeneral.appendChild(labelProyectos);
+
+                proyectos.forEach(proy => {
+                    const btnProy = document.createElement('button');
+                    btnProy.style.cssText = "background: #222227; color: #e4e4e7; border: 1px solid #3f3f46; padding: 8px 10px; text-align: left; border-radius: 6px; cursor: pointer; font-size: 12px; width: 100%; transition: background 0.2s;";
+                    btnProy.innerHTML = `<strong>${proy.nombre_proyecto}</strong>`;
+                    btnProy.addEventListener('click', () => desplegarOpcionesProyecto(btnProy, proy));
+                    contenedorGeneral.appendChild(btnProy);
+                });
+            }
+        } catch (e) {
+            console.error("Error al obtener lista previa:", e);
+        }
+
+        contenedorGeneral.appendChild(crearBotoneraNuevasTareas());
+
+        const btnCambiarColaborador = document.createElement('button');
+        btnCambiarColaborador.style.cssText = "background: #3f3f46; color: #f4f4f5; border: 1px solid #52525b; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 11px; margin-top: 5px; width: 100%; text-align: center;";
+        btnCambiarColaborador.innerText = "🔄 Cambiar de proyecto / colaborador";
+        btnCambiarColaborador.addEventListener('click', () => sendMessage("Nueva sesión"));
+
+        contenedorGeneral.appendChild(btnCambiarColaborador);
+
+    } else {
+        mensaje = `¿En qué te puedo seguir ayudando? Puedes elegir una nueva tarea o ingresar un nombre:`;
+        contenedorGeneral.appendChild(crearBotoneraNuevasTareas());
+    }
+
+    publicarRespuestaBot(mensaje, null, miniAvatar, msgDiv, contenedorGeneral);
+}
+
+// ESCUCHADOR DE REGRESO AL CHAT
+window.addEventListener('regresoAlChatEvent', () => {
+    setTimeout(() => {
+        darBienvenidaContinuidad();
+    }, 500);
+});
+
+// INICIAR TAREA
 function iniciarNuevoProyecto(tipoModulo) {
     if (welcomeScreen && !welcomeScreen.classList.contains('hidden')) {
         welcomeScreen.classList.add('hidden');
         chatBox.classList.remove('hidden');
     }
 
+    const container = document.createElement('div');
+    container.classList.add('bot-msg-container');
+    const miniAvatar = document.createElement('img');
+    miniAvatar.src = 'bot-open-original-chat.png'; 
+    miniAvatar.className = 'bot-chat-img';
+    const msgDiv = document.createElement('div');
+    msgDiv.className = 'bot-message';
+    
+    container.appendChild(miniAvatar);
+    container.appendChild(msgDiv);
+    chatBox.appendChild(container);
+
+    // AQUÍ ESTÁ EL CAMBIO CLAVE: Si clienteActual ya tiene un valor, NO pide el nombre de nuevo
+    if (!clienteActual || !clienteActual.trim()) {
+        moduloPendiente = tipoModulo; 
+        const msj = `¡Excelente elección! Antes de comenzar con la configuración, por favor dime tu **nombre y apellido** o el **nombre del proyecto** para registrarlo en Supabase:`;
+        publicarRespuestaBot(msj, null, miniAvatar, msgDiv);
+        return;
+    }
+
+    arrancarModuloTecnico(tipoModulo, miniAvatar, msgDiv);
+}
+
+function arrancarModuloTecnico(tipoModulo, miniAvatar, msgDiv) {
     moduloActivoNuevoProy = tipoModulo;
+    moduloPendiente = null;
     let inicioData = null;
 
     if (tipoModulo === "matriz") {
@@ -147,18 +238,6 @@ function iniciarNuevoProyecto(tipoModulo) {
     }
 
     if (inicioData) {
-        const container = document.createElement('div');
-        container.classList.add('bot-msg-container');
-        const miniAvatar = document.createElement('img');
-        miniAvatar.src = 'bot-thinking-chat.png'; 
-        miniAvatar.className = 'bot-chat-img';
-        const msgDiv = document.createElement('div');
-        msgDiv.className = 'bot-message';
-        
-        container.appendChild(miniAvatar);
-        container.appendChild(msgDiv);
-        chatBox.appendChild(container);
-
         publicarRespuestaBot(inicioData.texto, inicioData.opciones, miniAvatar, msgDiv);
     }
 }
@@ -178,7 +257,7 @@ async function sendMessage(text) {
     const container = document.createElement('div');
     container.classList.add('bot-msg-container');
     const miniAvatar = document.createElement('img');
-    miniAvatar.src = 'bot-thinking-chat.png'; 
+    miniAvatar.src = 'bot-open-original-chat.png'; 
     miniAvatar.className = 'bot-chat-img';
     const msgDiv = document.createElement('div');
     msgDiv.className = 'bot-message';
@@ -193,7 +272,42 @@ async function sendMessage(text) {
     setTimeout(async () => {
         let cleanText = text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 
-        // 1. EVALUAR FLUJOS DE PREGUNTAS ACTIVOS
+        // 0. CAMBIAR DE CLIENTE / PROYECTO
+        if (cleanText === 'cambiar_cliente' || cleanText.includes('cambiar de proyecto') || cleanText.includes('cambiar colaborador')) {
+            clienteActual = "";
+            moduloPendiente = null;
+            moduloActivoNuevoProy = null;
+            publicarRespuestaBot("Entendido. Por favor escribe el nombre con el que deseas trabajar o el proyecto que quieres acceder:", null, miniAvatar, msgDiv);
+            return;
+        }
+
+        // 1. ESPERANDO NOMBRE PARA TAREA PENDIENTE
+        if (moduloPendiente) {
+            const validacion = validarEntradaNombre(text);
+            if (!validacion.esValido) {
+                publicarRespuestaBot(validacion.respuesta, null, miniAvatar, msgDiv);
+                return;
+            }
+
+            clienteActual = validacion.nombreLimpio || text.trim();
+            const textoConfirmacion = `¡Perfecto! Registrado como: "${clienteActual}". Ahora continuemos con la configuración.\n\n`;
+            
+            moduloActivoNuevoProy = moduloPendiente;
+            let inicioData = null;
+
+            if (moduloPendiente === "matriz") inicioData = flujoMatriz.iniciar();
+            else if (moduloPendiente === "voltaje") inicioData = flujoVoltaje.iniciar();
+            else if (moduloPendiente === "baterias") inicioData = flujoBateria.iniciar();
+
+            moduloPendiente = null; 
+
+            if (inicioData) {
+                publicarRespuestaBot(textoConfirmacion + inicioData.texto, inicioData.opciones, miniAvatar, msgDiv);
+            }
+            return;
+        }
+
+        // 2. PREGUNTAS TÉCNICAS DEL MÓDULO ACTIVO
         if (moduloActivoNuevoProy === "matriz") {
             const contextoChat = { msgDiv, miniAvatar, chatBox, setBotState };
             const resp = await flujoMatriz.procesarRespuesta(text, contextoChat);
@@ -216,7 +330,7 @@ async function sendMessage(text) {
             return;
         }
 
-        // 2. RECONOCER INTENCIONES POR COMANDO O TEXTO DIRECTO
+        // 3. SELECCIÓN DIRECTA DE TAREA POR PALABRA CLAVE
         const pideMatriz = cleanText.includes('causa') || cleanText.includes('efecto') || cleanText.includes('matriz');
         const pideBaterias = cleanText.includes('bateria') || cleanText.includes('baterias');
         const pideVoltaje = cleanText.includes('caida') || cleanText.includes('voltaje') || cleanText.includes('tension');
@@ -237,22 +351,37 @@ async function sendMessage(text) {
             return;
         }
 
-        // 3. BÚSQUEDA Y CONSULTAS EN SUPABASE
+        // 4. VALIDACIÓN DE SALUDOS / CONSULTAS GENERALES
+        const validacion = validarEntradaNombre(text);
+        if (!validacion.esValido) {
+            if (clienteActual) {
+                // Si YA TIENE NOMBRE registrado y solo saludó/preguntó algo
+                publicarRespuestaBot(`¡Hola de nuevo! Seguimos trabajando con "${clienteActual}". ¿Qué tarea deseas realizar?`, null, miniAvatar, msgDiv, crearBotoneraNuevasTareas());
+            } else {
+                // Si AÚN NO TIENE NOMBRE registrado
+                publicarRespuestaBot(validacion.respuesta, null, miniAvatar, msgDiv);
+            }
+            return;
+        }
+
+        // 5. BÚSQUEDA Y REGISTRO DEL NOMBRE EN SUPABASE
         let botReply = "";
         let customElementHTML = null;
+
+        // ASIGNACIÓN INMEDIATA DEL NOMBRE: A partir de este instante el bot recordará el nombre ingresado
+        clienteActual = validacion.nombreLimpio || text.trim();
 
         try {
             const client = getSupabaseClient();
             let { data: proyectos, error } = await client
                 .from('proyectos')
                 .select('*')
-                .ilike('cliente', `%${text.trim()}%`); 
+                .ilike('cliente', `%${clienteActual}%`); 
 
             if (error) throw error;
-            clienteActual = text; 
 
             if (proyectos && proyectos.length > 0) {
-                botReply = `He encontrado los siguientes registros asociados a "${text}" en la nube. Haz clic sobre uno para abrirlo:`;
+                botReply = `He encontrado los siguientes registros asociados a "${clienteActual}" en la nube. Haz clic sobre uno para abrirlo:`;
                 
                 customElementHTML = document.createElement('div');
                 customElementHTML.style.cssText = "display: flex; flex-direction: column; gap: 8px; margin-top: 10px; width: 100%;";
@@ -267,13 +396,17 @@ async function sendMessage(text) {
                     customElementHTML.appendChild(btnProy);
                 });
 
+                // También agregamos la botonera para crear tareas nuevas
+                customElementHTML.appendChild(crearBotoneraNuevasTareas());
+
             } else {
-                botReply = `No localicé proyectos existentes para "${text}".`;
+                botReply = `No localicé proyectos existentes para "${clienteActual}". Sin embargo, ya quedó registrado en sesión.`;
                 customElementHTML = crearBotoneraNuevasTareas();
             }
         } catch (err) {
             console.error("Error detallado:", err);
             botReply = `Hubo un inconveniente con Supabase. Detalle: ${err.message || err}`;
+            customElementHTML = crearBotoneraNuevasTareas();
         }
 
         publicarRespuestaBot(botReply, null, miniAvatar, msgDiv, customElementHTML);
@@ -348,14 +481,16 @@ function desplegarOpcionesProyecto(botonPadre, proyectoRow) {
                 chatBox, 
                 totalZonasDetectadas, 
                 totalFacusDetectados, 
-                () => {}
+                () => {
+                    window.dispatchEvent(new CustomEvent('regresoAlChatEvent'));
+                }
             );
 
             setTimeout(() => {
                 moduloMatriz.cargarDatosGuardados(proyectoRow.datos);
             }, 150);
         }
-    }); // <-- Aquí cierra correctamente la función del eventListener
+    });
 
     panelOpciones.appendChild(btnEditar);
     
@@ -396,6 +531,8 @@ window.addEventListener('guardarProyectoSupabaseEvent', async (event) => {
 
         if (error) throw error;
         alert("Proyecto guardado exitosamente.");
+
+        window.dispatchEvent(new CustomEvent('regresoAlChatEvent'));
 
     } catch (err) {
         console.error("Error persistiendo datos:", err);

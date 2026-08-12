@@ -15,7 +15,7 @@ const RESISTENCIA_CABLE_OHM_M = {
 export const moduloVoltaje = {
     estado: {
         paso: "FINALIZADO",
-        metodo: "peor_caso", // "peor_caso" (End Point) o "segmentado" (Point to Point)
+        metodo: "peor_caso",
         clase: "B",  
         calibreAWG: "14 Solid",
         voltajeFuente: 24,
@@ -54,25 +54,8 @@ export const moduloVoltaje = {
             self.estado = { ...self.estado, ...estadoActual };
         }
 
-        // Remover modal existente si ya estaba abierto
         const prevModal = document.getElementById('voltajeModalOverlay');
         if (prevModal) prevModal.remove();
-
-        let menuContextual = document.getElementById('contextMenuTablaNAC');
-        if (!menuContextual) {
-            menuContextual = document.createElement('div');
-            menuContextual.id = 'contextMenuTablaNAC';
-            menuContextual.style.cssText = `
-                position: fixed; display: none; background: #18181b; border: 1px solid #3f3f46;
-                border-radius: 6px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
-                z-index: 100000; padding: 4px 0; min-width: 170px; font-size: 12px; color: #f4f4f5;
-            `;
-            document.body.appendChild(menuContextual);
-
-            window.addEventListener('click', () => {
-                menuContextual.style.display = 'none';
-            });
-        }
 
         const modalOverlay = document.createElement('div');
         modalOverlay.id = "voltajeModalOverlay";
@@ -126,7 +109,6 @@ export const moduloVoltaje = {
         const contFuentesGlobal = modalContainer.querySelector('#contenedorFuentesGlobal');
         const selectMetodo = modalContainer.querySelector('#selMetodoCalculoGlobal');
 
-        // Evento para cambiar el método dinámicamente y reconstruir la vista
         selectMetodo.addEventListener('change', (e) => {
             self.estado.metodo = e.target.value;
             const estadoActualizado = {
@@ -150,32 +132,42 @@ export const moduloVoltaje = {
             const factorClase = (claseFuente === "B") ? 2 : 1;
 
             let totalAmperios = 0;
-            let totalDistanciaM = 0;
             let numDispositivos = 0;
             let vDrop = 0;
 
             const filas = Array.from(circuitoDiv.querySelectorAll('.tabla-dispositivos-body tr'));
-            numDispositivos = filas.length;
 
             const dispositivosDatos = filas.map(tr => {
-                const amp = parseFloat(tr.querySelector('.inp-amp')?.value) || 0;
-                const dist = parseFloat(tr.querySelector('.inp-dist')?.value) || 0;
-                totalAmperios += amp;
-                return { amp, dist };
+                const cant = parseInt(tr.querySelector('.inp-cant')?.value, 10) || 1;
+                const ampUnitario = parseFloat(tr.querySelector('.inp-amp-unit')?.value) || 0;
+                const ampTotalFila = ampUnitario * cant;
+
+                const inpAmpTotal = tr.querySelector('.inp-amp-total');
+                if (inpAmpTotal) inpAmpTotal.value = ampTotalFila.toFixed(3);
+
+                const distInterDispositivo = parseFloat(tr.querySelector('.inp-dist')?.value) || 0;
+
+                numDispositivos += cant;
+                totalAmperios += ampTotalFila;
+
+                return { cant, ampUnitario, ampTotalFila, distInterDispositivo };
             });
 
             if (esPeorCaso) {
-                totalDistanciaM = parseFloat(circuitoDiv.querySelector('.inp-distancia-total-circuito')?.value) || 0;
+                const totalDistanciaM = parseFloat(circuitoDiv.querySelector('.inp-distancia-total-circuito')?.value) || 0;
                 vDrop = totalAmperios * (totalDistanciaM * resOhmMetro * factorClase);
-            } else {
-                let corrienteAcumuladaRestante = totalAmperios;
-                dispositivosDatos.forEach(dev => {
-                    totalDistanciaM += dev.dist;
-                    const vDropTramo = corrienteAcumuladaRestante * (dev.dist * resOhmMetro * factorClase);
+            } 
+            else {
+            let corrienteAcumuladaRestante = totalAmperios;
+
+            dispositivosDatos.forEach(dev => {
+                for (let i = 0; i < dev.cant; i++) {
+                    const vDropTramo = corrienteAcumuladaRestante * (dev.distInterDispositivo * resOhmMetro * factorClase);
                     vDrop += vDropTramo;
-                    corrienteAcumuladaRestante -= dev.amp;
-                });
-            }
+                    corrienteAcumuladaRestante -= dev.ampUnitario;
+                }
+            });
+        }
 
             const elDevs = circuitoDiv.querySelector('.metric-num-devs');
             const elAmps = circuitoDiv.querySelector('.metric-amps-used');
@@ -260,7 +252,7 @@ export const moduloVoltaje = {
                 circuitoDiv.className = 'circuito-nac-card';
                 circuitoDiv.style.cssText = "background: #09090b; border: 1px solid #27272a; border-radius: 6px; padding: 12px;";
 
-                const nombreCircuito = datosCircuito?.nombreCircuito || `Circuito NAC ${idxCircuito}`;
+                const nombreCircuito = datosCircuito?.nombreCircuito || `Circuito ${idxCircuito}`;
                 const awgVal = datosCircuito?.calibreAWG || self.estado.calibreAWG || "14 Solid";
                 const distTotalInicial = datosCircuito?.distanciaTotal || self.estado.distanciaTotal || 100;
 
@@ -304,16 +296,17 @@ export const moduloVoltaje = {
                     <table style="width: 100%; border-collapse: collapse; font-size: 11px; color: #e4e4e7; margin-bottom: 8px;">
                         <thead>
                             <tr style="border-bottom: 1px solid #3f3f46; background: #121215; text-align: center;">
-                                <th style="padding: 6px; width: 30px;">#</th>
-                                <th style="width: 120px;">Marca</th>
-                                <th style="width: 130px;">Tipo</th>
+                                <th style="padding: 6px; width: 45px;">Cant.</th>
+                                <th style="width: 110px;">Marca</th>
+                                <th style="width: 120px;">Tipo</th>
                                 <th style="width: 80px;">Montaje</th>
-                                <th style="width: 70px;">Candela</th>
-                                <th style="width: 110px;">Patrón</th>
-                                <th style="width: 80px;">Volumen</th>
-                                <th style="width: 90px;">Corriente (AMPS)</th>
-                                ${esPeorCaso ? '' : '<th style="width: 80px;">Distancia (m)</th>'}
-                                <th style="width: 50px;">Acción</th>
+                                <th style="width: 60px;">Candela</th>
+                                <th style="width: 100px;">Patrón</th>
+                                <th style="width: 70px;">Volumen</th>
+                                <th style="width: 80px;">Amp. Unit.</th>
+                                <th style="width: 80px;">Amp. Total</th>
+                                ${esPeorCaso ? '' : '<th style="width: 80px;">Dist. c/u (m)</th>'}
+                                <th style="width: 40px;">Acción</th>
                             </tr>
                         </thead>
                         <tbody class="tabla-dispositivos-body"></tbody>
@@ -326,19 +319,11 @@ export const moduloVoltaje = {
 
                 const tbody = circuitoDiv.querySelector('.tabla-dispositivos-body');
 
-                function reindexarFilas() {
-                    tbody.querySelectorAll('tr').forEach((tr, idx) => {
-                        const colIndex = tr.querySelector('.col-index');
-                        if (colIndex) {
-                            colIndex.innerText = idx + 1;
-                        }
-                    });
-                }
-
-                function crearFilaDispositivo(datosDev = null, filaReferencia = null) {
+                function crearFilaDispositivo(datosDev = null) {
                     const row = document.createElement('tr');
                     row.style.cssText = "border-bottom: 1px solid #27272a; text-align: center;";
 
+                    const valCantidad = datosDev?.cantidad || 1;
                     const valMarca = datosDev?.marca || "HONEYWELL";
                     const valTipo = datosDev?.tipo || "SIRENA CON ESTROBO";
                     const valMontaje = datosDev?.montaje || "PARED";
@@ -348,29 +333,31 @@ export const moduloVoltaje = {
                     const valDistancia = datosDev?.distancia || 1;
 
                     const columnaDistanciaHTML = esPeorCaso ? '' : `
-                        <td><input type="number" step="1" class="inp-dist" value="${valDistancia}" style="background: #18181b; color: #fff; border: 1px solid #3f3f46; width: 60px; font-size: 11px; text-align: center;"></td>
+                        <td><input type="number" step="1" min="0" class="inp-dist" value="${valDistancia}" style="background: #18181b; color: #fff; border: 1px solid #3f3f46; width: 60px; font-size: 11px; text-align: center;"></td>
                     `;
 
                     row.innerHTML = `
-                        <td class="col-index" style="padding: 6px; font-weight: bold; color: #a1a1aa;">-</td>
+                        <td style="padding: 6px;"><input type="number" min="1" step="1" class="inp-cant" value="${valCantidad}" style="background: #18181b; color: #38bdf8; border: 1px solid #3f3f46; width: 45px; font-size: 11px; text-align: center; font-weight: bold;"></td>
                         <td><select class="sel-marca" style="background:#18181b; color:#fff; border:1px solid #3f3f46; font-size:11px; border-radius:4px; padding:2px;"></select></td>
                         <td><select class="sel-tipo" style="background:#18181b; color:#fff; border:1px solid #3f3f46; font-size:11px; border-radius:4px; padding:2px;"></select></td>
                         <td><select class="sel-montaje" style="background:#18181b; color:#fff; border:1px solid #3f3f46; font-size:11px; border-radius:4px; padding:2px;"></select></td>
                         <td><select class="sel-candela" style="background:#18181b; color:#fff; border:1px solid #3f3f46; font-size:11px; border-radius:4px; padding:2px;"></select></td>
                         <td><select class="sel-patron" style="background:#18181b; color:#fff; border:1px solid #3f3f46; font-size:11px; border-radius:4px; padding:2px;"></select></td>
                         <td><select class="sel-volumen" style="background:#18181b; color:#fff; border:1px solid #3f3f46; font-size:11px; border-radius:4px; padding:2px;"></select></td>
-                        <td><input type="number" step="0.001" class="inp-amp" readonly style="background: #27272a; color: #38bdf8; border: 1px solid #3f3f46; width: 65px; font-size: 11px; text-align: center; font-weight: bold;"></td>
+                        <td><input type="number" step="0.001" class="inp-amp-unit" readonly style="background: #27272a; color: #a1a1aa; border: 1px solid #3f3f46; width: 60px; font-size: 11px; text-align: center;"></td>
+                        <td><input type="number" step="0.001" class="inp-amp-total" readonly style="background: #27272a; color: #38bdf8; border: 1px solid #3f3f46; width: 65px; font-size: 11px; text-align: center; font-weight: bold;"></td>
                         ${columnaDistanciaHTML}
                         <td><button class="btn-del-dev" style="background: transparent; border: none; color: #ef4444; cursor: pointer; font-size: 12px;">✕</button></td>
                     `;
 
+                    const inpCant = row.querySelector('.inp-cant');
                     const selMarca = row.querySelector('.sel-marca');
                     const selTipo = row.querySelector('.sel-tipo');
                     const selMontaje = row.querySelector('.sel-montaje');
                     const selCandela = row.querySelector('.sel-candela');
                     const selPatron = row.querySelector('.sel-patron');
                     const selVolumen = row.querySelector('.sel-volumen');
-                    const inpAmp = row.querySelector('.inp-amp');
+                    const inpAmpUnit = row.querySelector('.inp-amp-unit');
 
                     OPCIONES_DESPLEGABLES.marcas.forEach(m => selMarca.add(new Option(m, m)));
                     OPCIONES_DESPLEGABLES.tipos.forEach(t => selTipo.add(new Option(t, t)));
@@ -427,54 +414,13 @@ export const moduloVoltaje = {
                             selPatron.value, 
                             selVolumen.value
                         );
-                        inpAmp.value = ampCalculado.toFixed(3);
+
+                        inpAmpUnit.value = ampCalculado.toFixed(3);
 
                         recalcularMeticasCircuito(circuitoDiv);
                     }
-                    
-                    row.addEventListener('contextmenu', (e) => {
-                        e.preventDefault();
 
-                        menuContextual.style.left = `${e.clientX}px`;
-                        menuContextual.style.top = `${e.clientY}px`;
-                        menuContextual.style.display = 'block';
-
-                        menuContextual.innerHTML = `
-                            <div id="btnMultiplicarFila" style="padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
-                                <span style="color: #38bdf8; font-weight: bold;">✕</span> Multiplicar Dispositivo
-                            </div>
-                        `;
-
-                        const btnMult = menuContextual.querySelector('#btnMultiplicarFila');
-                        btnMult.onmouseenter = () => btnMult.style.background = '#27272a';
-                        btnMult.onmouseleave = () => btnMult.style.background = 'transparent';
-
-                        btnMult.onclick = (event) => {
-                            event.stopPropagation();
-                            menuContextual.style.display = 'none';
-
-                            const inputCant = prompt("¿Cuántas copias idénticas de este dispositivo deseas agregar debajo?", "1");
-                            const cantidad = parseInt(inputCant, 10);
-
-                            if (!isNaN(cantidad) && cantidad > 0) {
-                                const configCopiar = {
-                                    marca: selMarca.value,
-                                    tipo: selTipo.value,
-                                    montaje: selMontaje.value,
-                                    candela: selCandela.value,
-                                    patron: selPatron.value,
-                                    volumen: selVolumen.value,
-                                    distancia: esPeorCaso ? 0 : (parseFloat(row.querySelector('.inp-dist')?.value) || 1)
-                                };
-
-                                let ultimoPuntoInsercion = row;
-                                for (let i = 0; i < cantidad; i++) {
-                                    const nuevaFila = crearFilaDispositivo(configCopiar, ultimoPuntoInsercion);
-                                    ultimoPuntoInsercion = nuevaFila;
-                                }
-                            }
-                        };
-                    });
+                    inpCant.addEventListener('input', () => recalcularMeticasCircuito(circuitoDiv));
 
                     [selMarca, selTipo, selMontaje, selCandela, selPatron, selVolumen].forEach(el => {
                         el.addEventListener('change', () => actualizarDesplegablesYConsumo());
@@ -491,18 +437,11 @@ export const moduloVoltaje = {
                         volumen: valVolumen
                     });
 
-                    if (filaReferencia) {
-                        filaReferencia.insertAdjacentElement('afterend', row);
-                    } else {
-                        tbody.appendChild(row);
-                    }
-
-                    reindexarFilas();
+                    tbody.appendChild(row);
                     recalcularMeticasCircuito(circuitoDiv);
 
                     row.querySelector('.btn-del-dev').addEventListener('click', () => {
                         row.remove();
-                        reindexarFilas();
                         recalcularMeticasCircuito(circuitoDiv);
                     });
 
@@ -580,7 +519,9 @@ export const moduloVoltaje = {
 
                     const dispositivos = [];
                     cCard.querySelectorAll('.tabla-dispositivos-body tr').forEach(tr => {
+                        const cant = parseInt(tr.querySelector('.inp-cant').value, 10) || 1;
                         dispositivos.push({
+                            cantidad: cant,
                             marca: tr.querySelector('.sel-marca').value,
                             tipo: tr.querySelector('.sel-tipo').value,
                             montaje: tr.querySelector('.sel-montaje').value,
@@ -588,7 +529,8 @@ export const moduloVoltaje = {
                             patron: tr.querySelector('.sel-patron').value,
                             volumen: tr.querySelector('.sel-volumen').value,
                             modelo: `${tr.querySelector('.sel-marca').value} - ${tr.querySelector('.sel-tipo').value}`,
-                            corriente: parseFloat(tr.querySelector('.inp-amp').value) || 0,
+                            corrienteUnitario: parseFloat(tr.querySelector('.inp-amp-unit').value) || 0,
+                            corrienteTotal: parseFloat(tr.querySelector('.inp-amp-total').value) || 0,
                             distancia: esPeorCaso ? 0 : (parseFloat(tr.querySelector('.inp-dist')?.value) || 0)
                         });
                     });

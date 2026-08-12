@@ -1,5 +1,3 @@
-// n_proy-matriz.js
-
 export const flujoMatriz = {
     paso: "INICIO",
     totalFacus: 1,
@@ -40,14 +38,27 @@ export const flujoMatriz = {
             this.totalZonas = valorNumerico;
             this.paso = "FINALIZADO";
 
-            // Cargar el módulo UI de la matriz
-            const { iniciarModuloMatriz } = await import('./modulo-matriz.js');
-            iniciarModuloMatriz(msgDiv, miniAvatar, chatBox, this.totalZonas, this.totalFacus, () => {});
+            setTimeout(async () => {
+                const { iniciarModuloMatriz } = await import('./modulo-matriz.js');
+                
+                iniciarModuloMatriz(
+                    msgDiv, 
+                    miniAvatar, 
+                    chatBox, 
+                    this.totalZonas, 
+                    this.totalFacus, 
+                    () => {
+                        window.dispatchEvent(new CustomEvent('regresoAlChatEvent'));
+                    }
+                );
 
-            if (typeof setBotState === 'function') setBotState('idle', miniAvatar, true);
+                if (typeof setBotState === 'function') {
+                    setBotState('idle', miniAvatar, true);
+                }
+            }, 2500);
 
             return {
-                texto: `Configuración completada (${this.totalFacus} FACUs, ${this.totalZonas} Zonas). Cargando matriz interactiva...`,
+                texto: `Configuración completada (${this.totalFacus} FACUs, ${this.totalZonas} Zonas).\nCargando matriz interactiva...`,
                 moduloCompletado: true
             };
         }

@@ -1,5 +1,3 @@
-// catalogos-nac.js - Catálogo de dispositivos de notificación comerciales
-
 export const OPCIONES_DESPLEGABLES = {
     marcas: ["HONEYWELL", "SIMPLEX", "EXCEDER", "WHEELOCK"],
     tipos: ["ESTROBO", "SIRENA", "SIRENA CON ESTROBO"],
@@ -12,16 +10,18 @@ export const OPCIONES_DESPLEGABLES = {
     ]
 };
 
-// Base de Datos de Dispositivos con consumos en mA
 export const CATALOGO_MATRIZ_CONSUMOS = [
+
     // ==========================================
     // 1. HONEYWELL - PARED
     // ==========================================
+
     // Honeywell Pared Estrobo
     ...[15, 30, 75, 95, 110, 135, 185].map((cd, idx) => ({
         marca: "HONEYWELL", tipo: "ESTROBO", montaje: "PARED", candela: String(cd), patron: "N/A", volumen: "N/A",
         mA: [18, 22, 70, 75, 85, 105, 120][idx]
     })),
+
     // Honeywell Pared Estrobo con Sirena
     ...[
         { patron: "Temporal", volumen: "Alto", mA: [35, 38, 87, 92, 94, 189, 190] },
@@ -35,9 +35,11 @@ export const CATALOGO_MATRIZ_CONSUMOS = [
     ].flatMap(cfg => [15, 30, 75, 95, 110, 135, 185].map((cd, i) => ({
         marca: "HONEYWELL", tipo: "SIRENA CON ESTROBO", montaje: "PARED", candela: String(cd), patron: cfg.patron, volumen: cfg.volumen, mA: cfg.mA[i]
     }))),
+
     // ==========================================
     // HONEYWELL - SIRENA INTERIOR Y EXTERIOR 
     // ==========================================
+
     // Interior
     { marca: "HONEYWELL", tipo: "SIRENA", montaje: "PARED / TECHO INTERIOR", candela: "N/A", patron: "Temporal", volumen: "Alto", mA: 44 },
     { marca: "HONEYWELL", tipo: "SIRENA", montaje: "PARED / TECHO INTERIOR", candela: "N/A", patron: "Temporal", volumen: "Bajo", mA: 32 },
@@ -63,11 +65,13 @@ export const CATALOGO_MATRIZ_CONSUMOS = [
     // ==========================================
     // 2. HONEYWELL - TECHO
     // ==========================================
+
     // Honeywell Techo Estrobo
     ...[15, 30, 75, 95, 115, 150, 177].map((cd, idx) => ({
         marca: "HONEYWELL", tipo: "ESTROBO", montaje: "TECHO", candela: String(cd), patron: "N/A", volumen: "N/A",
         mA: [18, 22, 70, 75, 90, 110, 115][idx]
     })),
+
     // Honeywell Techo Estrobo con Sirena
     ...[
         { patron: "Temporal", volumen: "Alto", mA: [35, 38, 87, 92, 94, 189, 190] },
@@ -87,6 +91,7 @@ export const CATALOGO_MATRIZ_CONSUMOS = [
     // ==========================================
     // 3. SIMPLEX
     // ==========================================
+
     // Simplex Estrobo con Sirena (Pared/Techo)
     { marca: "SIMPLEX", tipo: "SIRENA CON ESTROBO", montaje: "PARED / TECHO", candela: "15", patron: "Estándar", volumen: "Estándar", mA: 51 },
     { marca: "SIMPLEX", tipo: "SIRENA CON ESTROBO", montaje: "PARED / TECHO", candela: "30", patron: "Estándar", volumen: "Estándar", mA: 63 },
@@ -128,7 +133,7 @@ export const CATALOGO_MATRIZ_CONSUMOS = [
     { marca: "EXCEDER", tipo: "ESTROBO", montaje: "PARED / TECHO", candela: "177", patron: "N/A", volumen: "N/A", mA: 253 },
     { marca: "EXCEDER", tipo: "ESTROBO", montaje: "PARED / TECHO", candela: "185", patron: "N/A", volumen: "N/A", mA: 253 },
 
-    // Estrobo con Sirena
+    // Sirena con estrobo
     { marca: "EXCEDER", tipo: "SIRENA CON ESTROBO", montaje: "PARED / TECHO", candela: "15", patron: "Estándar", volumen: "90 dB", mA: 65 },
     { marca: "EXCEDER", tipo: "SIRENA CON ESTROBO", montaje: "PARED / TECHO", candela: "30", patron: "Estándar", volumen: "90 dB", mA: 84 },
     { marca: "EXCEDER", tipo: "SIRENA CON ESTROBO", montaje: "PARED / TECHO", candela: "60", patron: "Estándar", volumen: "90 dB", mA: 120 },

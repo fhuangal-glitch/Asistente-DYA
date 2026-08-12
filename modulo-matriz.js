@@ -5,6 +5,7 @@ let salidasPorFacu = {};
 let facusConfigurados = 1;
 let facuActualIndex = 1; 
 let chatBoxGlobal = null;
+let callbackFinalizarGlobal = null;
 let pestañaActualFiltro = "entradas";
 let subFaseActual = "entradas";
 
@@ -36,6 +37,7 @@ export function iniciarModuloMatriz(msgDiv, miniAvatar, chatBox, zonasTotalesSis
     facusConfigurados = facus; 
     facuActualIndex = 1;
     chatBoxGlobal = chatBox;
+    callbackFinalizarGlobal = onFinishedCallback;
     subFaseActual = "entradas";
 
     window.totalZonasGlobalesSistema = zonasTotalesSistema;
@@ -261,7 +263,7 @@ export function renderizarFlujoSecuencial() {
                     Configurando actualmente: <span style="background-color: #2563eb; color: white; padding: 4px 10px; border-radius: 4px; font-weight: bold; font-size: 13px;">FACU #0${facuActualIndex}</span>
                 </p>
             </div>
-            <button id="btn-abortar-matriz" style="background: #ef4444; color: white; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px;">✕ Cerrar</button>
+            <button id="btn-abortar-matriz" style="background: #ef4444; color: white; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px;">Cerrar</button>
         </div>
 
         <div style="width: 100%; max-width: 1700px; margin: 0 auto; display: flex; gap: 25px; flex: 1; align-items: stretch;">
@@ -599,7 +601,22 @@ export function vincularLogicaColumnas(superContenedor, totalZonasActual) {
     const sUltimo = superContenedor.querySelector('#sec-ultimo-nivel'); 
     const btnInsertar = superContenedor.querySelector('#btn-add-causa-masiva');
 
-    superContenedor.querySelector('#btn-abortar-matriz').addEventListener('click', () => { superContenedor.remove(); });
+    superContenedor.querySelector('#btn-abortar-matriz').addEventListener('click', (e) => {
+    e.preventDefault();
+    
+    superContenedor.remove();
+    
+    if (typeof callbackFinalizarGlobal === 'function') {
+        callbackFinalizarGlobal();
+    } else if (typeof chatBoxGlobal !== 'undefined' && chatBoxGlobal) {
+        const aviso = document.createElement('div');
+        aviso.className = 'bot-message';
+        aviso.style.marginTop = "10px";
+        aviso.innerHTML = `Regresaste al chat.`;
+        chatBoxGlobal.appendChild(aviso);
+        chatBoxGlobal.scrollTop = chatBoxGlobal.scrollHeight;
+    }
+});
 
     function evaluarVisibilidadBotonInsertar() {
         if (dispositivosSeleccionados.length > 0) {
@@ -1037,9 +1054,10 @@ export function desplegarMatrizExcelFinal(superContenedor) {
             </div>
             <div style="display: flex; gap: 12px; align-items: center;">
                 <button id="btn-comentario" style="background: #d97706; color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size:14px; transition: background 0.2s;">Comentario</button>
-                <button id="btn-regresar-config" style="background: #4b5563; color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size:14px; transition: background 0.2s;"><i class="fas fa-arrow-left"></i> Volver a Configuración</button>
+                <button id="btn-regresar-config" style="background: #4b5563; color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size:14px; transition: background 0.2s;"><</i>Volver a Configuración</button>
                 <button id="btn-exportar-excel-all" style="background: #10b981; color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size:14px;">Descargar Excel</button>
-                <button id="btn-cerrar-final" style="background: #2563eb; color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size:14px;">✓ Guardar Todo y Regresar</button>
+                <button id="btn-guardar-db" style="background: #2563eb; color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size:14px;">Guardar</button>
+                <button id="btn-regresar-chat" style="background: #6b7280; color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size:14px;">Regresar al Chat</button>
             </div>
         </div>
         <div id="matrices-paneles-container" style="width: 100%; max-width: 1700px; margin: 0 auto; display: flex; flex-direction: column; gap: 40px; position: relative;"></div>
@@ -1411,7 +1429,7 @@ export function desplegarMatrizExcelFinal(superContenedor) {
         }
     });
 
-    superContenedor.querySelector('#btn-cerrar-final').addEventListener('click', async (e) => {
+    superContenedor.querySelector('#btn-guardar-db').addEventListener('click', async (e) => {
         e.preventDefault();
 
         try {
@@ -1431,19 +1449,31 @@ export function desplegarMatrizExcelFinal(superContenedor) {
             });
             window.dispatchEvent(customEvent);
 
-            superContenedor.remove();
-            if (typeof chatBoxGlobal !== 'undefined' && chatBoxGlobal) {
-                const aviso = document.createElement('div');
-                aviso.className = 'bot-message';
-                aviso.style.marginTop = "10px";
-                aviso.innerHTML = `Nuevo proyecto creado.`;
-                chatBoxGlobal.appendChild(aviso);
-                chatBoxGlobal.scrollTop = chatBoxGlobal.scrollHeight;
-            }
+            alert("Proyecto guardado exitosamente en la base de datos.");
 
         } catch (error) {
             console.error("Error al procesar el guardado:", error);
-            alert("Ocurrió un error al preparar los datos: " + error.message);
+            alert("Ocurrió un error al guardar los datos: " + error.message);
+        }
+    });
+
+    superContenedor.querySelector('#btn-regresar-chat').addEventListener('click', (e) => {
+        e.preventDefault();
+        
+        // 1. Cerramos/removemos la pantalla de la matriz
+        superContenedor.remove();
+        
+        // 2. Si existe la función callback configurada, la ejecutamos
+        if (typeof callbackFinalizarGlobal === 'function') {
+            callbackFinalizarGlobal();
+        } else if (typeof chatBoxGlobal !== 'undefined' && chatBoxGlobal) {
+            // Respaldo por si no le pasaste callback al iniciar
+            const aviso = document.createElement('div');
+            aviso.className = 'bot-message';
+            aviso.style.marginTop = "10px";
+            aviso.innerHTML = `Regresaste al chat.`;
+            chatBoxGlobal.appendChild(aviso);
+            chatBoxGlobal.scrollTop = chatBoxGlobal.scrollHeight;
         }
     });
 
@@ -1544,7 +1574,9 @@ async function descargarExcelConPlantillaDYA(datosMatriz, nombreProyecto = "Matr
     }
 
     const workbook = new ExcelJS.Workbook();
-    const facuKeys = Object.keys(datosMatriz);
+
+    const mapaFacus = datosMatriz.facus || datosMatriz;
+    const facuKeys = Object.keys(mapaFacus).filter(k => k !== 'totalZonas');
 
     if (facuKeys.length === 0) {
         alert("No hay datos de matrices para exportar.");
@@ -1568,7 +1600,7 @@ async function descargarExcelConPlantillaDYA(datosMatriz, nombreProyecto = "Matr
     };
 
     facuKeys.forEach((fKey) => {
-        const datosFacu = datosMatriz[fKey] || {};
+        const datosFacu = mapaFacus[fKey] || {};
         const salidas = datosFacu.salidas || [];
         const entradas = datosFacu.entradas || [];
         const totalSalidas = salidas.length;
