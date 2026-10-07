@@ -1253,6 +1253,8 @@ export function desplegarMatrizExcelFinal(superContenedor) {
                                                 </td>`;
                                 }
 
+                                entradaLimpia = entradaLimpia.replace(/^\d+\.\s*/, '');
+
                                 return `<tr class="row-trigger-causa" style="border-bottom: 1px solid #27272a;">
                                             ${tdZonaHtml}
                                             <td contenteditable="true" class="editable-cause-cell" style="padding: 10px; border: 1px solid #3f3f46; background: #18181b; outline: none; min-width: 350px;">
@@ -1591,7 +1593,7 @@ export function obtenerDatosEstructuradosDeLaPantalla() {
             }
 
             const celdaCausa = fila.querySelector('.editable-cause-cell');
-            let textoCausa = celdaCausa ? celdaCausa.innerHTML.replace(/^<strong>.*?<\/strong>\.?\s*/, '').trim() : '';
+            let textoCausa = celdaCausa ? celdaCausa.innerHTML.replace(/^<strong>.*?<\/strong>\.?\s*/, '').replace(/^\d+\.\s*/, '').trim() : '';
 
             // 3. Extraer Intersecciones
             const celdasInterseccion = fila.querySelectorAll('.excel-interseccion-cell');
